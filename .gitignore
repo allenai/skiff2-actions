@@ -1,0 +1,7 @@
+node_modules/
+
+# Terraform files (may contain sensitive data)
+*.tfvars
+*.tfvars.json
+.terraform/
+.terraform.lock.hcl

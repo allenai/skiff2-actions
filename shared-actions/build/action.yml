@@ -1,0 +1,72 @@
+name: Skiff2 Docker Build and Push
+description: Builds multiple Docker services and pushes them to GCP
+author: Skiff
+
+inputs:
+    project_id:
+        description: "GCP project ID"
+        required: true
+    config_file:
+        description: "Path to skiff2.json file (relative to calling repo root). Service cwd paths are resolved relative to this file."
+        required: false
+        default: "skiff2.json"
+    registry:
+        description: "Docker registry (e.g., gcr.io)"
+        required: false
+        default: "gcr.io"
+    region:
+        description: " region"
+        required: false
+        default: "us-west1"
+    repo_name:
+        description: "Repository name (defaults to github.event.repository.name)"
+        required: false
+        default: ${{ github.event.repository.name }}
+    commit_sha:
+        description: "Commit SHA to tag images with (defaults to github.sha)"
+        required: false
+        default: ${{ github.sha }}
+    branch_name:
+        description: "Branch name to tag images with (defaults to github.ref_name)"
+        required: false
+        default: ${{ github.ref_name }}
+    services:
+        description: "Comma-separated list of service names to build (defaults to all services)"
+        required: false
+        default: ""
+
+outputs:
+    built-images:
+        description: "JSON object mapping service names to their built image tags"
+        value: ${{ steps.build.outputs.built-images }}
+
+runs:
+    using: composite
+    steps:
+        - name: Set up Node.js
+          uses: actions/setup-node@v6
+          with:
+              node-version: 24
+
+        - name: Install action dependencies
+          shell: bash
+          working-directory: ${{ github.action_path }}/../
+          run: npm ci
+
+        - name: Build services
+          id: build
+          shell: bash
+          working-directory: ${{ github.action_path }}/../
+          env:
+              INPUT_CONFIG_FILE: ${{ inputs.config_file }}
+              INPUT_REGISTRY: ${{ inputs.registry }}
+              INPUT_PROJECT_ID: ${{ inputs.project_id }}
+              INPUT_REPO_NAME: ${{ inputs.repo_name }}
+              INPUT_COMMIT_SHA: ${{ inputs.commit_sha }}
+              INPUT_BRANCH_NAME: ${{ inputs.branch_name }}
+              INPUT_SERVICES: ${{ inputs.services }}
+          run: npm run dynamic-build
+
+branding:
+    icon: package
+    color: blue
