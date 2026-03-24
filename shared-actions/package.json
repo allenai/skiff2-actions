@@ -1,0 +1,22 @@
+{
+    "name": "skiff-commodore-shared-actions",
+    "version": "1.0.0",
+    "type": "module",
+    "scripts": {
+        "dynamic-build": "node ./build/dynamic-build.ts",
+        "generate-infra-tfvars": "node ./deploy-infra/generate-infra-tfvars.ts",
+        "generate-services-tfvars": "node ./deploy-services/generate-services-tfvars.ts"
+    },
+    "dependencies": {
+        "@actions/core": "^1.10.1",
+        "@actions/exec": "^1.1.1",
+        "zod": "^3.22.4"
+    },
+    "devDependencies": {
+        "@types/node": "^24.10.13",
+        "typescript": "^5.9.3"
+    },
+    "engines": {
+        "node": ">=24.0"
+    }
+}

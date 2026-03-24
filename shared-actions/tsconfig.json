@@ -1,0 +1,22 @@
+{
+    "compilerOptions": {
+        "lib": ["ESNext"],
+        "module": "esnext",
+        "target": "esnext",
+        "moduleResolution": "bundler",
+        "moduleDetection": "force",
+        "noEmit": true,
+        "allowImportingTsExtensions": true,
+        "strict": true,
+        "downlevelIteration": true,
+        "skipLibCheck": true,
+        "allowSyntheticDefaultImports": true,
+        "esModuleInterop": true,
+        "forceConsistentCasingInFileNames": true,
+        "allowJs": true,
+        "resolveJsonModule": true,
+        "verbatimModuleSyntax": true,
+        "erasableSyntaxOnly": true,
+        "types": ["node"]
+    }
+}

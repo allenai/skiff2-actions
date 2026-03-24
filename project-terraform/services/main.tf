@@ -1,0 +1,50 @@
+terraform {
+  required_version = ">= 1.13"
+
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = "~> 6.0"
+    }
+    google-beta = {
+      source  = "hashicorp/google-beta"
+      version = "~> 6.0"
+    }
+  }
+
+  backend "gcs" {
+    bucket = "" # Set via -backend-config during terraform init
+    prefix = "terraform/services"
+  }
+}
+
+provider "google" {
+  project = var.project_id
+  region  = var.region
+}
+
+provider "google-beta" {
+  project = var.project_id
+  region  = var.region
+}
+
+data "google_project" "project" {
+  project_id = var.project_id
+}
+
+module "cloud_run_service" {
+  for_each = var.services
+  source   = "./modules/cloud_run_service"
+  providers = {
+    google      = google
+    google-beta = google-beta
+  }
+
+  service_name           = each.value.name
+  service                = each.value
+  project_id             = var.project_id
+  project_number         = data.google_project.project.number
+  region                 = var.region
+  deployment_environment = each.value.deployment_environment
+  image_tag              = each.value.image_tag
+}
