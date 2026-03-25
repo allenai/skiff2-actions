@@ -8,12 +8,14 @@ import {
   type BuildConfig,
 } from "../shared/skiff2-config.ts";
 
-interface BuildContext {
+export interface BuildContext {
   registry: string;
   projectId: string;
   repoName: string;
   commitSha: string;
   branchName: string;
+  buildArgs: string[] | null;
+  secretEnvs: string[] | null;
 }
 
 interface BuildState {
@@ -48,7 +50,7 @@ function buildImageTags(
   return tags;
 }
 
-function buildDockerArgs(
+export function buildDockerArgs(
   service: ServiceConfig,
   context: BuildContext,
   configDir: string,
@@ -84,8 +86,21 @@ function buildDockerArgs(
           value,
         );
       }
-      buildArgs.push(processedArg);
+      buildArgs.push('--build-arg', processedArg);
     });
+  }
+
+  if (context.buildArgs) {
+    const buildArgValues = context.buildArgs.flatMap(buildArg => ['--build-arg', buildArg])
+    buildArgs.push(...buildArgValues)
+  }
+
+  if (context.secretEnvs) {
+    const secretEnvs = context.secretEnvs.flatMap(secretEnv => {
+      const secretValue = 'type=env,' + secretEnv
+      return ['--secret', secretValue]
+    })
+    buildArgs.push(...secretEnvs)
   }
 
   tags.forEach((tag) => {
@@ -244,7 +259,7 @@ function splitList(input: string) {
     .filter(Boolean);
 }
 
-type ParsedInputs = {
+interface ParsedInputs {
   localConfigPath: string;
   registry: string;
   projectId: string;
