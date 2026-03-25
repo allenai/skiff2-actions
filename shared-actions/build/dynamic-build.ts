@@ -237,23 +237,68 @@ async function buildAll(
   outputBuildResults(state);
 }
 
-async function main() {
-  try {
-    // Get inputs
+function splitList(input: string) {
+  return input
+    .split(/,|\n/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
 
-    const localConfigPath = core.getInput("config_file", { required: true });
-    const registry = core.getInput("registry", { required: true });
-    const projectId = core.getInput("project_id", { required: true });
-    const repoName = core.getInput("repo_name", { required: true });
-    const commitSha = core.getInput("commit_sha", { required: true });
-    const branchName = core.getInput("branch_name", { required: true });
-    const servicesInput = core.getInput("services");
-    const serviceFilter = servicesInput
-      ? servicesInput
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean)
-      : null;
+type ParsedInputs = {
+  localConfigPath: string;
+  registry: string;
+  projectId: string;
+  repoName: string;
+  commitSha: string;
+  branchName: string;
+  serviceFilter: string[] | null;
+  buildArgs: string[] | null;
+  secretEnvs: string[] | null;
+};
+
+export function getInputs(): ParsedInputs {
+  const localConfigPath = core.getInput("config_file", { required: true });
+  const registry = core.getInput("registry", { required: true });
+  const projectId = core.getInput("project_id", { required: true });
+  const repoName = core.getInput("repo_name", { required: true });
+  const commitSha = core.getInput("commit_sha", { required: true });
+  const branchName = core.getInput("branch_name", { required: true });
+
+  const servicesInput = core.getInput("services");
+  const serviceFilter = servicesInput ? splitList(servicesInput) : null;
+
+  const buildArgsInput = core.getInput("build_args");
+  const buildArgs = buildArgsInput ? splitList(buildArgsInput) : null;
+
+  const secretEnvsInput = core.getInput("secret_envs");
+  const secretEnvs = secretEnvsInput ? splitList(secretEnvsInput) : null;
+
+  return {
+    localConfigPath,
+    registry,
+    projectId,
+    repoName,
+    commitSha,
+    branchName,
+    serviceFilter,
+    buildArgs,
+    secretEnvs,
+  } satisfies ParsedInputs;
+}
+
+export async function main() {
+  try {
+    const {
+      localConfigPath,
+      registry,
+      projectId,
+      repoName,
+      commitSha,
+      branchName,
+      serviceFilter,
+      buildArgs,
+      secretEnvs,
+    } = getInputs();
 
     const workspaceRoot = process.env.GITHUB_WORKSPACE || process.cwd();
     const configFile = resolve(workspaceRoot, localConfigPath);
@@ -290,5 +335,3 @@ async function main() {
     }
   }
 }
-
-main();

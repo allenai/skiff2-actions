@@ -34,6 +34,12 @@ inputs:
     description: "Comma-separated list of service names to build (defaults to all services)"
     required: false
     default: ""
+  build_args:
+    description: "List of build-time variables"
+    required: false
+  secret_envs:
+    description: "List of secret env vars to expose to the build (e.g., key=envname, MY_SECRET=MY_ENV_VAR)"
+    required: false
 
 outputs:
   built-images:
