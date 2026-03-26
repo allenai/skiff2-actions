@@ -1,0 +1,20 @@
+{
+    "projectName": "skiff2-test-build",
+    "environments": [
+        "main",
+        "args-and-secrets"
+    ],
+    "services": [
+        {
+            "name": "build-test",
+            "cwd": ".",
+            "dockerFile": ".Dockerfile",
+            "extraBuildArgs": [
+                "--build-arg",
+                "UI_IMAGE=gcr.io/${PROJECT_ID}/${REPO_NAME}-ui:${COMMIT_SHA}"
+            ],
+            "isRootService": true,
+            "allowUnauthenticated": true
+        }
+    ]
+}

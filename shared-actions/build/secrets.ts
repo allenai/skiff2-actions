@@ -1,8 +1,9 @@
 import * as core from "@actions/core";
 import fs from "fs";
-import path from "path";
+import path, { dirname } from "path";
 import os from "os";
 import { tmpNameSync, type TmpNameOptions } from "tmp";
+import { fileURLToPath } from "url";
 
 // Taken from https://github.com/docker/actions-toolkit/blob/7f3ea34932528f872ce4d1787cab7f5ab94b2491/src/context.ts#L22
 export class TempFileContext {

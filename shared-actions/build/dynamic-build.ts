@@ -89,7 +89,7 @@ export function buildDockerArgs(
           value,
         );
       }
-      buildArgs.push("--build-arg", processedArg);
+      buildArgs.push(processedArg);
     });
   }
 
@@ -342,6 +342,7 @@ export async function main() {
       branchName,
       serviceFilter,
       buildArgs,
+      secrets,
       secretEnvs,
       secretFiles,
     } = getInputs();
@@ -371,6 +372,7 @@ export async function main() {
       commitSha,
       branchName,
       buildArgs,
+      secrets,
       secretEnvs,
       secretFiles,
     };

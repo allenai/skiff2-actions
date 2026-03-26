@@ -17,7 +17,7 @@ beforeEach(() => {
 
   const tmpDir = fs.mkdtempSync("/temp-context-").toString();
   const tmpName = path.join(tmpDir, ".tmpname-vi");
-  
+
   vi.spyOn(TempFileContext, "tmpDir").mockImplementation((): string => {
     if (!fs.existsSync(tmpDir)) {
       fs.mkdirSync(tmpDir, { recursive: true });
@@ -78,6 +78,11 @@ test("buildDockerArgs maps correctly", () => {
     allowUnauthenticated: false,
     allowDelete: false,
     secretFiles: { "run/secret/secret_file": "secret_file" },
+    extraBuildArgs: [
+      "--build-arg",
+      "UI_IMAGE=gcr.io/${PROJECT_ID}/${REPO_NAME}-ui:${COMMIT_SHA}",
+      "--arg",
+    ],
     customDomains: [],
     machine: {
       minInstances: 1,
@@ -115,11 +120,16 @@ test("buildDockerArgs maps correctly", () => {
     "--build-arg",
     "BUILDKIT_INLINE_CACHE=1",
     "--build-arg",
+    "UI_IMAGE=gcr.io/project/skiff-commodore-fake-ui:SHA",
+    "--arg",
+    "--build-arg",
     "ARG_ONE=1",
     "--build-arg",
     "SECOND_ARG=two",
     "--secret",
-    expect.stringMatching(/id=secret_token,src=\/temp-context-\w*\/\.tmpname-vi$/),
+    expect.stringMatching(
+      /id=secret_token,src=\/temp-context-\w*\/\.tmpname-vi$/,
+    ),
     "--secret",
     "id=first_env,env=foo",
     "--secret",

@@ -6,6 +6,19 @@ All behavior is driven by action inputs. The build and deploy actions derive the
 
 ## Actions
 
+### Testing
+Install `act`: https://nektosact.com/installation/index.html. On MacOS, install with `brew`:
+```sh
+brew install act
+```
+
+Run `act` targeting the test workflow (example uses the shared build action):
+```sh
+act -W shared-actions/build/test/test-action.yml
+```
+
+If you're having trouble with docker sockets, follow these instructions: https://github.com/nektos/act/issues/2239#issuecomment-2466020469
+
 ### `shared-actions/setup`
 
 Takes GCP credentials and project inputs and sets up Workload Identity Federation authentication, Cloud SDK, and Docker for GCR.
