@@ -29,6 +29,10 @@ The `project-terraform/` directory contains the Terraform modules used by the de
 - `infra/` — shared infrastructure (load balancer, networking)
 - `services/` — Cloud Run service definitions
 
+## Formatting
+
+To format files, run `npx prettier . --write`.
+
 ## License
 
 Apache 2.0 — see [LICENSE](./LICENSE).
