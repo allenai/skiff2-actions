@@ -20,7 +20,7 @@ Run `act` targeting the test workflow (example uses the shared build action):
 act -W shared-actions/build/test/test-action.yml
 ```
 
-If you're having trouble with docker sockets, follow these instructions: https://github.com/nektos/act/issues/2239#issuecomment-2466020469
+If you're having trouble with docker sockets when using colima, follow these instructions: https://github.com/nektos/act/issues/2239#issuecomment-2466020469
 
 ### `shared-actions/setup`
 
