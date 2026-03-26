@@ -6,12 +6,28 @@ import {
   type BuildContext,
 } from "./dynamic-build.ts";
 import { test, vi, expect, beforeEach } from "vitest";
+import { TempFileContext } from "./secrets.ts";
+import path from "path";
 
 vi.mock("node:fs");
 vi.mock("node:fs/promises");
 
 beforeEach(() => {
   vol.reset();
+
+  const tmpDir = fs.mkdtempSync("/temp-context-").toString();
+  const tmpName = path.join(tmpDir, ".tmpname-vi");
+  
+  vi.spyOn(TempFileContext, "tmpDir").mockImplementation((): string => {
+    if (!fs.existsSync(tmpDir)) {
+      fs.mkdirSync(tmpDir, { recursive: true });
+    }
+    return tmpDir;
+  });
+
+  vi.spyOn(TempFileContext, "tmpName").mockImplementation((): string => {
+    return tmpName;
+  });
 });
 
 function stubGithubActionInput(inputName: string, value: string) {
@@ -26,7 +42,8 @@ test("getInputs parses correctly", () => {
   stubGithubActionInput("commit_sha", "SHA");
   stubGithubActionInput("branch_name", "branch");
   stubGithubActionInput("services", "service1, service2, serviceFoo");
-  stubGithubActionInput("build_args", "FIRST_ARG=foo\nSECOND_ARG=bar");
+  stubGithubActionInput("build_args", "FIRST_ARG=foo\nSECOND_ARG=bar,");
+  stubGithubActionInput("secrets", "github_token=12345\nanother_secret=fo,o");
   stubGithubActionInput("secret_envs", "secret_one=1\nsecret_two=foo");
   stubGithubActionInput(
     "secret_files",
@@ -42,7 +59,8 @@ test("getInputs parses correctly", () => {
     commitSha: "SHA",
     branchName: "branch",
     serviceFilter: ["service1", "service2", "serviceFoo"],
-    buildArgs: ["FIRST_ARG=foo", "SECOND_ARG=bar"],
+    buildArgs: ["FIRST_ARG=foo", "SECOND_ARG=bar,"],
+    secrets: ["github_token=12345", "another_secret=fo,o"],
     secretEnvs: ["secret_one=1", "secret_two=foo"],
     secretFiles: [
       "secret_file=./secret_credentials",
@@ -77,6 +95,7 @@ test("buildDockerArgs maps correctly", () => {
     commitSha: "SHA",
     branchName: "branch",
     buildArgs: ["ARG_ONE=1", "SECOND_ARG=two"],
+    secrets: ["secret_token=12345"],
     secretEnvs: ["first_env=foo", "env_two=2"],
     secretFiles: ["creds=/credentials"],
   } satisfies BuildContext;
@@ -99,6 +118,8 @@ test("buildDockerArgs maps correctly", () => {
     "ARG_ONE=1",
     "--build-arg",
     "SECOND_ARG=two",
+    "--secret",
+    expect.stringMatching(/id=secret_token,src=\/temp-context-\w*\/\.tmpname-vi$/),
     "--secret",
     "id=first_env,env=foo",
     "--secret",

@@ -7,7 +7,7 @@ import {
   type ServiceConfig,
   type BuildConfig,
 } from "../shared/skiff2-config.ts";
-import { resolveSecretEnv, resolveSecretFile } from "./util.ts";
+import { resolveSecretEnv, resolveSecretFile, resolveSecretString } from "./secrets.ts";
 
 export interface BuildContext {
   registry: string;
@@ -16,6 +16,7 @@ export interface BuildContext {
   commitSha: string;
   branchName: string;
   buildArgs: string[] | null;
+  secrets: string[] | null;
   secretEnvs: string[] | null;
   secretFiles: string[] | null;
 }
@@ -99,19 +100,19 @@ export function buildDockerArgs(
     ]);
     buildArgs.push(...buildArgValues);
   }
+  
+  if (context.secrets) {
+    const secrets = context.secrets.flatMap(secret => ["--secret", resolveSecretString(secret)])
+    buildArgs.push(...secrets)
+  }
 
   if (context.secretEnvs) {
-    const secretEnvs = context.secretEnvs.flatMap((secretEnv) => {
-      return ["--secret", resolveSecretEnv(secretEnv)];
-    });
+    const secretEnvs = context.secretEnvs.flatMap((secretEnv) => ["--secret", resolveSecretEnv(secretEnv)]);
     buildArgs.push(...secretEnvs);
   }
 
   if (context.secretFiles) {
-    const secretFiles = context.secretFiles.flatMap((secretFile) => {
-      return ["--secret", resolveSecretFile(secretFile)];
-    });
-
+    const secretFiles = context.secretFiles.flatMap((secretFile) => ["--secret", resolveSecretFile(secretFile)]);
     buildArgs.push(...secretFiles);
   }
 
@@ -297,6 +298,7 @@ interface ParsedInputs {
   branchName: string;
   serviceFilter: string[] | null;
   buildArgs: string[] | null;
+  secrets: string[] | null;
   secretEnvs: string[] | null;
   secretFiles: string[] | null;
 }
@@ -310,6 +312,7 @@ export function getInputs(): ParsedInputs {
   const branchName = core.getInput("branch_name", { required: true });
   const serviceFilter = getInputList("services");
   const buildArgs = getInputList("build_args", { ignoreComma: true });
+  const secrets = getInputList("secrets", { ignoreComma: true });
   const secretEnvs = getInputList("secret_envs");
   const secretFiles = getInputList("secret_files", { ignoreComma: true });
 
@@ -322,6 +325,7 @@ export function getInputs(): ParsedInputs {
     branchName,
     serviceFilter,
     buildArgs,
+    secrets,
     secretEnvs,
     secretFiles,
   } satisfies ParsedInputs;
