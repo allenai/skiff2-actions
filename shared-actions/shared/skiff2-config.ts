@@ -4,11 +4,11 @@ export const MachineConfigSchema = z
   .object({
     minInstances: z.number().int().min(0).optional().default(1),
     maxInstances: z.number().int().min(1).optional().default(10),
-    memory: z.string().optional().default('512Mi'),
+    memory: z.string().optional().default("512Mi"),
     cpu: z.number().int().min(1).optional().default(1),
     cpuIdle: z.boolean().optional().default(true),
   })
-  .strict()
+  .strict();
 
 export const ServiceConfigSchema = z
   .object({

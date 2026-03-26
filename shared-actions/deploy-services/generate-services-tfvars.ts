@@ -56,13 +56,12 @@ async function main() {
   }
 
   const servicesInput = core.getInput("services");
-  const serviceFilter =
-    servicesInput
-      ? servicesInput
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean)
-      : null;
+  const serviceFilter = servicesInput
+    ? servicesInput
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : null;
 
   // Validate filtered service names exist in the config
   if (serviceFilter) {
@@ -85,9 +84,7 @@ async function main() {
   const deploymentEnv = isMainBranch ? "prod" : sanitizeBranchTag(targetBranch);
   const imageTag = sanitizeBranchTag(targetBranch);
 
-  core.info(
-    `Building services map for environment "${targetBranch}"`,
-  );
+  core.info(`Building services map for environment "${targetBranch}"`);
 
   const services: Record<string, ServiceEntry> = {};
 
@@ -109,12 +106,12 @@ async function main() {
       image_tag: imageTag,
       deployment_environment: deploymentEnv,
       machine: {
-          min_instances: service.machine.minInstances,
-          max_instances: service.machine.maxInstances,
-          memory: service.machine.memory,
-          cpu: String(service.machine.cpu),
-          cpu_idle: service.machine.cpuIdle,
-        },
+        min_instances: service.machine.minInstances,
+        max_instances: service.machine.maxInstances,
+        memory: service.machine.memory,
+        cpu: String(service.machine.cpu),
+        cpu_idle: service.machine.cpuIdle,
+      },
     };
 
     if (service.secondaryImage) {
@@ -127,9 +124,7 @@ async function main() {
     throw new Error("No deployable services found in config");
   }
 
-  core.info(
-    `Found ${Object.keys(services).length} deployable service(s)`,
-  );
+  core.info(`Found ${Object.keys(services).length} deployable service(s)`);
 
   const tfvars = {
     project_id: projectId,

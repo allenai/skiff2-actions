@@ -3,90 +3,90 @@ description: Transforms skiff2.json config into Terraform variables and runs ter
 author: Skiff
 
 inputs:
-    project_id:
-        description: "GCP project ID"
-        required: true
-    config_file:
-        description: "Path to skiff2.json config file (relative to calling repo root)"
-        required: false
-        default: "skiff2.json"
-    region:
-        description: "GCP region"
-        required: false
-        default: "us-west1"
-    repo_name:
-        description: "Repository name (defaults to github.event.repository.name)"
-        required: false
-        default: ${{ github.event.repository.name }}
-    command:
-        description: "Terraform command to run: 'plan' or 'apply'"
-        required: false
-        default: "plan"
-    environment:
-        description: "Target environment to deploy (e.g. 'main', 'qa')."
-        required: false
-        default: ${{ github.ref_name }}
-    services:
-        description: "Comma-separated list of service names to deploy (defaults to all services)"
-        required: false
-        default: ""
+  project_id:
+    description: "GCP project ID"
+    required: true
+  config_file:
+    description: "Path to skiff2.json config file (relative to calling repo root)"
+    required: false
+    default: "skiff2.json"
+  region:
+    description: "GCP region"
+    required: false
+    default: "us-west1"
+  repo_name:
+    description: "Repository name (defaults to github.event.repository.name)"
+    required: false
+    default: ${{ github.event.repository.name }}
+  command:
+    description: "Terraform command to run: 'plan' or 'apply'"
+    required: false
+    default: "plan"
+  environment:
+    description: "Target environment to deploy (e.g. 'main', 'qa')."
+    required: false
+    default: ${{ github.ref_name }}
+  services:
+    description: "Comma-separated list of service names to deploy (defaults to all services)"
+    required: false
+    default: ""
 
 outputs:
-    default_url:
-        description: "Default load balancer URL for the project"
-        value: ${{ steps.transform.outputs.default_url }}
+  default_url:
+    description: "Default load balancer URL for the project"
+    value: ${{ steps.transform.outputs.default_url }}
 
 runs:
-    using: composite
-    steps:
-        - name: Set up Node.js
-          uses: actions/setup-node@v6
-          with:
-              node-version: 24
+  using: composite
+  steps:
+    - name: Set up Node.js
+      uses: actions/setup-node@v6
+      with:
+        node-version: 24
 
-        - name: Install action dependencies
-          shell: bash
-          working-directory: ${{ github.action_path }}/../
-          run: npm ci
+    - name: Install action dependencies
+      shell: bash
+      working-directory: ${{ github.action_path }}/../
+      run: npm ci
 
-        - name: Transform config to Terraform variables
-          id: transform
-          shell: bash
-          working-directory: ${{ github.action_path }}/../
-          env:
-              INPUT_CONFIG_FILE: ${{ inputs.config_file }}
-              INPUT_PROJECT_ID: ${{ inputs.project_id }}
-              INPUT_REGION: ${{ inputs.region }}
-              INPUT_REPO_NAME: ${{ inputs.repo_name }}
-              INPUT_ENVIRONMENT: ${{ inputs.environment }}
-              INPUT_SERVICES: ${{ inputs.services }}
-              TERRAFORM_DIR: ${{ github.action_path }}/../../project-terraform/services
-          run: node ./deploy-services/generate-services-tfvars.ts
+    - name: Transform config to Terraform variables
+      id: transform
+      shell: bash
+      working-directory: ${{ github.action_path }}/../
+      env:
+        INPUT_CONFIG_FILE: ${{ inputs.config_file }}
+        INPUT_PROJECT_ID: ${{ inputs.project_id }}
+        INPUT_REGION: ${{ inputs.region }}
+        INPUT_REPO_NAME: ${{ inputs.repo_name }}
+        INPUT_ENVIRONMENT: ${{ inputs.environment }}
+        INPUT_SERVICES: ${{ inputs.services }}
+        TERRAFORM_DIR: ${{ github.action_path }}/../../project-terraform/services
+      run: node ./deploy-services/generate-services-tfvars.ts
 
-        - name: Setup Terraform
-          uses: hashicorp/setup-terraform@v3
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
 
-        - name: Terraform Init
-          shell: bash
-          working-directory: ${{ github.action_path }}/../../project-terraform/services
-          run: terraform init -backend-config="bucket=${{ inputs.project_id }}-tf-state"
+    - name: Terraform Init
+      shell: bash
+      working-directory: ${{ github.action_path }}/../../project-terraform/services
+      run: terraform init -backend-config="bucket=${{ inputs.project_id }}-tf-state"
 
-        - name: Select Terraform Workspace
-          shell: bash
-          working-directory: ${{ github.action_path }}/../../project-terraform/services
-          run: terraform workspace select -or-create ${{ steps.transform.outputs.workspace }}
+    - name: Select Terraform Workspace
+      shell: bash
+      working-directory: ${{ github.action_path }}/../../project-terraform/services
+      run: terraform workspace select -or-create ${{ steps.transform.outputs.workspace }}
 
-        - name: Terraform ${{ inputs.command == 'apply' && 'Apply' || 'Plan' }}
-          id: terraform
-          shell: bash
-          working-directory: ${{ github.action_path }}/../../project-terraform/services
-          run: |
-              if [ "${{ inputs.command }}" = "apply" ]; then
-                terraform apply -input=false -auto-approve
-              else
-                terraform plan -input=false
-              fi
+    - name: Terraform ${{ inputs.command == 'apply' && 'Apply' || 'Plan' }}
+      id: terraform
+      shell: bash
+      working-directory: ${{ github.action_path }}/../../project-terraform/services
+      run: |
+        if [ "${{ inputs.command }}" = "apply" ]; then
+          terraform apply -input=false -auto-approve
+        else
+          terraform plan -input=false
+        fi
 
 branding:
-    icon: settings
-    color: purple
+  icon: settings
+  color: purple

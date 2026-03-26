@@ -249,7 +249,10 @@ async function main() {
     const branchName = core.getInput("branch_name", { required: true });
     const servicesInput = core.getInput("services");
     const serviceFilter = servicesInput
-      ? servicesInput.split(",").map((s) => s.trim()).filter(Boolean)
+      ? servicesInput
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean)
       : null;
 
     const workspaceRoot = process.env.GITHUB_WORKSPACE || process.cwd();
