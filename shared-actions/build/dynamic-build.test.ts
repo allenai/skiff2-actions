@@ -1,10 +1,18 @@
+import { fs, vol } from "memfs";
 import type { ServiceConfig } from "../shared/skiff2-config.ts";
 import {
   getInputs,
   buildDockerArgs,
   type BuildContext,
 } from "./dynamic-build.ts";
-import { test, vi, expect } from "vitest";
+import { test, vi, expect, beforeEach } from "vitest";
+
+vi.mock("node:fs");
+vi.mock("node:fs/promises");
+
+beforeEach(() => {
+  vol.reset();
+});
 
 function stubGithubActionInput(inputName: string, value: string) {
   vi.stubEnv(`INPUT_${inputName.toUpperCase()}`, value);
@@ -20,6 +28,10 @@ test("getInputs parses correctly", () => {
   stubGithubActionInput("services", "service1, service2, serviceFoo");
   stubGithubActionInput("build_args", "FIRST_ARG=foo\nSECOND_ARG=bar");
   stubGithubActionInput("secret_envs", "secret_one=1\nsecret_two=foo");
+  stubGithubActionInput(
+    "secret_files",
+    "secret_file=./secret_credentials\nsecret_two=../not_credentials.py",
+  );
 
   const parsedInputs = getInputs();
   expect(parsedInputs).toEqual({
@@ -32,6 +44,10 @@ test("getInputs parses correctly", () => {
     serviceFilter: ["service1", "service2", "serviceFoo"],
     buildArgs: ["FIRST_ARG=foo", "SECOND_ARG=bar"],
     secretEnvs: ["secret_one=1", "secret_two=foo"],
+    secretFiles: [
+      "secret_file=./secret_credentials",
+      "secret_two=../not_credentials.py",
+    ],
   } satisfies ReturnType<typeof getInputs>);
 });
 
@@ -62,7 +78,10 @@ test("buildDockerArgs maps correctly", () => {
     branchName: "branch",
     buildArgs: ["ARG_ONE=1", "SECOND_ARG=two"],
     secretEnvs: ["first_env=foo", "env_two=2"],
+    secretFiles: ["creds=/credentials"],
   } satisfies BuildContext;
+
+  fs.writeFileSync("/credentials", "foo");
 
   const args = buildDockerArgs(testService, testContext, ".", ["fake-tag"]);
 
@@ -81,9 +100,11 @@ test("buildDockerArgs maps correctly", () => {
     "--build-arg",
     "SECOND_ARG=two",
     "--secret",
-    "type=env,first_env=foo",
+    "id=first_env,env=foo",
     "--secret",
-    "type=env,env_two=2",
+    "id=env_two,env=2",
+    "--secret",
+    "id=creds,src=/credentials",
     "--tag",
     "fake-tag",
     "--file",

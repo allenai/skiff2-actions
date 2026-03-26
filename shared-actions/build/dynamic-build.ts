@@ -7,6 +7,7 @@ import {
   type ServiceConfig,
   type BuildConfig,
 } from "../shared/skiff2-config.ts";
+import { resolveSecretEnv, resolveSecretFile } from "./util.ts";
 
 export interface BuildContext {
   registry: string;
@@ -16,6 +17,7 @@ export interface BuildContext {
   branchName: string;
   buildArgs: string[] | null;
   secretEnvs: string[] | null;
+  secretFiles: string[] | null;
 }
 
 interface BuildState {
@@ -86,21 +88,31 @@ export function buildDockerArgs(
           value,
         );
       }
-      buildArgs.push('--build-arg', processedArg);
+      buildArgs.push("--build-arg", processedArg);
     });
   }
 
   if (context.buildArgs) {
-    const buildArgValues = context.buildArgs.flatMap(buildArg => ['--build-arg', buildArg])
-    buildArgs.push(...buildArgValues)
+    const buildArgValues = context.buildArgs.flatMap((buildArg) => [
+      "--build-arg",
+      buildArg,
+    ]);
+    buildArgs.push(...buildArgValues);
   }
 
   if (context.secretEnvs) {
-    const secretEnvs = context.secretEnvs.flatMap(secretEnv => {
-      const secretValue = 'type=env,' + secretEnv
-      return ['--secret', secretValue]
-    })
-    buildArgs.push(...secretEnvs)
+    const secretEnvs = context.secretEnvs.flatMap((secretEnv) => {
+      return ["--secret", resolveSecretEnv(secretEnv)];
+    });
+    buildArgs.push(...secretEnvs);
+  }
+
+  if (context.secretFiles) {
+    const secretFiles = context.secretFiles.flatMap((secretFile) => {
+      return ["--secret", resolveSecretFile(secretFile)];
+    });
+
+    buildArgs.push(...secretFiles);
   }
 
   tags.forEach((tag) => {
@@ -252,11 +264,28 @@ async function buildAll(
   outputBuildResults(state);
 }
 
-function splitList(input: string) {
+function splitList(input: string, ignoreCommas = false) {
+  const splitRegex = ignoreCommas ? "\n" : /,|\n/;
   return input
-    .split(/,|\n/)
+    .split(splitRegex)
     .map((s) => s.trim())
     .filter(Boolean);
+}
+
+function getInputList(
+  inputName: string,
+  options: core.InputOptions & { ignoreComma: boolean } = {
+    ignoreComma: false,
+  },
+) {
+  const { ignoreComma: ignoreCommas, ...restOptions } = options;
+  const inputValue = core.getInput(inputName, restOptions);
+
+  if (!inputValue) {
+    return null;
+  }
+
+  return splitList(inputValue, ignoreCommas);
 }
 
 interface ParsedInputs {
@@ -269,7 +298,8 @@ interface ParsedInputs {
   serviceFilter: string[] | null;
   buildArgs: string[] | null;
   secretEnvs: string[] | null;
-};
+  secretFiles: string[] | null;
+}
 
 export function getInputs(): ParsedInputs {
   const localConfigPath = core.getInput("config_file", { required: true });
@@ -278,15 +308,10 @@ export function getInputs(): ParsedInputs {
   const repoName = core.getInput("repo_name", { required: true });
   const commitSha = core.getInput("commit_sha", { required: true });
   const branchName = core.getInput("branch_name", { required: true });
-
-  const servicesInput = core.getInput("services");
-  const serviceFilter = servicesInput ? splitList(servicesInput) : null;
-
-  const buildArgsInput = core.getInput("build_args");
-  const buildArgs = buildArgsInput ? splitList(buildArgsInput) : null;
-
-  const secretEnvsInput = core.getInput("secret_envs");
-  const secretEnvs = secretEnvsInput ? splitList(secretEnvsInput) : null;
+  const serviceFilter = getInputList("services");
+  const buildArgs = getInputList("build_args", { ignoreComma: true });
+  const secretEnvs = getInputList("secret_envs");
+  const secretFiles = getInputList("secret_files", { ignoreComma: true });
 
   return {
     localConfigPath,
@@ -298,6 +323,7 @@ export function getInputs(): ParsedInputs {
     serviceFilter,
     buildArgs,
     secretEnvs,
+    secretFiles,
   } satisfies ParsedInputs;
 }
 
@@ -313,6 +339,7 @@ export async function main() {
       serviceFilter,
       buildArgs,
       secretEnvs,
+      secretFiles,
     } = getInputs();
 
     const workspaceRoot = process.env.GITHUB_WORKSPACE || process.cwd();
@@ -339,6 +366,9 @@ export async function main() {
       repoName,
       commitSha,
       branchName,
+      buildArgs,
+      secretEnvs,
+      secretFiles,
     };
 
     await buildAll(config, context, configDir, serviceFilter);
