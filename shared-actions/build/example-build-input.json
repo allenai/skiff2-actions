@@ -1,30 +1,26 @@
 {
-    "services": [
-        {
-            "isRootService": true,
-            "name": "proxy",
-            "cwd": "./proxy",
-            "dockerFile": "prod.Dockerfile",
-            "dependsOn": [
-                "ui"
-            ],
-            "additonalContainers": [
-                "api"
-            ],
-            "extraBuildArgs": [
-                "--build-arg",
-                "UI_IMAGE=gcr.io/$PROJECT_ID/$REPO_NAME-ui:$COMMIT_SHA"
-            ]
-        },
-        {
-            "name": "api",
-            "cwd": "./api",
-            "deploy": false
-        },
-        {
-            "name": "ui",
-            "cwd": "./ui",
-            "deploy": false
-        }
-    ]
+  "services": [
+    {
+      "isRootService": true,
+      "name": "proxy",
+      "cwd": "./proxy",
+      "dockerFile": "prod.Dockerfile",
+      "dependsOn": ["ui"],
+      "additonalContainers": ["api"],
+      "extraBuildArgs": [
+        "--build-arg",
+        "UI_IMAGE=gcr.io/$PROJECT_ID/$REPO_NAME-ui:$COMMIT_SHA"
+      ]
+    },
+    {
+      "name": "api",
+      "cwd": "./api",
+      "deploy": false
+    },
+    {
+      "name": "ui",
+      "cwd": "./ui",
+      "deploy": false
+    }
+  ]
 }

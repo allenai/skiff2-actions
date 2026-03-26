@@ -1,3 +1,3 @@
-import { main } from './dynamic-build.ts'
+import { main } from "./dynamic-build.ts";
 
-main()
+main();

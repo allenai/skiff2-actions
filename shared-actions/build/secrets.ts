@@ -59,7 +59,9 @@ function resolveSecret(
     }
     return [key, value];
   }
-  const secretFile = TempFileContext.tmpName({ tmpdir: TempFileContext.tmpDir() });
+  const secretFile = TempFileContext.tmpName({
+    tmpdir: TempFileContext.tmpDir(),
+  });
   fs.writeFileSync(secretFile, value);
   return [key, secretFile];
 }

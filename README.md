@@ -7,12 +7,15 @@ All behavior is driven by action inputs. The build and deploy actions derive the
 ## Actions
 
 ### Testing
+
 Install `act`: https://nektosact.com/installation/index.html. On MacOS, install with `brew`:
+
 ```sh
 brew install act
 ```
 
 Run `act` targeting the test workflow (example uses the shared build action):
+
 ```sh
 act -W shared-actions/build/test/test-action.yml
 ```
