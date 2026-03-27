@@ -7,13 +7,22 @@ import {
   type ServiceConfig,
   type BuildConfig,
 } from "../shared/skiff2-config.ts";
+import {
+  resolveSecretEnv,
+  resolveSecretFile,
+  resolveSecretString,
+} from "./secrets.ts";
 
-interface BuildContext {
+export interface BuildContext {
   registry: string;
   projectId: string;
   repoName: string;
   commitSha: string;
   branchName: string;
+  buildArgs: string[] | null;
+  secrets: string[] | null;
+  secretEnvs: string[] | null;
+  secretFiles: string[] | null;
 }
 
 interface BuildState {
@@ -48,7 +57,7 @@ function buildImageTags(
   return tags;
 }
 
-function buildDockerArgs(
+export function buildDockerArgs(
   service: ServiceConfig,
   context: BuildContext,
   configDir: string,
@@ -86,6 +95,38 @@ function buildDockerArgs(
       }
       buildArgs.push(processedArg);
     });
+  }
+
+  if (context.buildArgs) {
+    const buildArgValues = context.buildArgs.flatMap((buildArg) => [
+      "--build-arg",
+      buildArg,
+    ]);
+    buildArgs.push(...buildArgValues);
+  }
+
+  if (context.secrets) {
+    const secrets = context.secrets.flatMap((secret) => [
+      "--secret",
+      resolveSecretString(secret),
+    ]);
+    buildArgs.push(...secrets);
+  }
+
+  if (context.secretEnvs) {
+    const secretEnvs = context.secretEnvs.flatMap((secretEnv) => [
+      "--secret",
+      resolveSecretEnv(secretEnv),
+    ]);
+    buildArgs.push(...secretEnvs);
+  }
+
+  if (context.secretFiles) {
+    const secretFiles = context.secretFiles.flatMap((secretFile) => [
+      "--secret",
+      resolveSecretFile(secretFile),
+    ]);
+    buildArgs.push(...secretFiles);
   }
 
   tags.forEach((tag) => {
@@ -237,23 +278,87 @@ async function buildAll(
   outputBuildResults(state);
 }
 
-async function main() {
-  try {
-    // Get inputs
+function splitList(input: string, ignoreCommas = false) {
+  const splitRegex = ignoreCommas ? "\n" : /,|\n/;
+  return input
+    .split(splitRegex)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
 
-    const localConfigPath = core.getInput("config_file", { required: true });
-    const registry = core.getInput("registry", { required: true });
-    const projectId = core.getInput("project_id", { required: true });
-    const repoName = core.getInput("repo_name", { required: true });
-    const commitSha = core.getInput("commit_sha", { required: true });
-    const branchName = core.getInput("branch_name", { required: true });
-    const servicesInput = core.getInput("services");
-    const serviceFilter = servicesInput
-      ? servicesInput
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean)
-      : null;
+function getInputList(
+  inputName: string,
+  options: core.InputOptions & { ignoreComma: boolean } = {
+    ignoreComma: false,
+  },
+) {
+  const { ignoreComma: ignoreCommas, ...restOptions } = options;
+  const inputValue = core.getInput(inputName, restOptions);
+
+  if (!inputValue) {
+    return null;
+  }
+
+  return splitList(inputValue, ignoreCommas);
+}
+
+interface ParsedInputs {
+  localConfigPath: string;
+  registry: string;
+  projectId: string;
+  repoName: string;
+  commitSha: string;
+  branchName: string;
+  serviceFilter: string[] | null;
+  buildArgs: string[] | null;
+  secrets: string[] | null;
+  secretEnvs: string[] | null;
+  secretFiles: string[] | null;
+}
+
+export function getInputs(): ParsedInputs {
+  const localConfigPath = core.getInput("config_file", { required: true });
+  const registry = core.getInput("registry", { required: true });
+  const projectId = core.getInput("project_id", { required: true });
+  const repoName = core.getInput("repo_name", { required: true });
+  const commitSha = core.getInput("commit_sha", { required: true });
+  const branchName = core.getInput("branch_name", { required: true });
+  const serviceFilter = getInputList("services");
+  const buildArgs = getInputList("build_args", { ignoreComma: true });
+  const secrets = getInputList("secrets", { ignoreComma: true });
+  const secretEnvs = getInputList("secret_envs");
+  const secretFiles = getInputList("secret_files", { ignoreComma: true });
+
+  return {
+    localConfigPath,
+    registry,
+    projectId,
+    repoName,
+    commitSha,
+    branchName,
+    serviceFilter,
+    buildArgs,
+    secrets,
+    secretEnvs,
+    secretFiles,
+  } satisfies ParsedInputs;
+}
+
+export async function main() {
+  try {
+    const {
+      localConfigPath,
+      registry,
+      projectId,
+      repoName,
+      commitSha,
+      branchName,
+      serviceFilter,
+      buildArgs,
+      secrets,
+      secretEnvs,
+      secretFiles,
+    } = getInputs();
 
     const workspaceRoot = process.env.GITHUB_WORKSPACE || process.cwd();
     const configFile = resolve(workspaceRoot, localConfigPath);
@@ -279,6 +384,10 @@ async function main() {
       repoName,
       commitSha,
       branchName,
+      buildArgs,
+      secrets,
+      secretEnvs,
+      secretFiles,
     };
 
     await buildAll(config, context, configDir, serviceFilter);
@@ -290,5 +399,3 @@ async function main() {
     }
   }
 }
-
-main();

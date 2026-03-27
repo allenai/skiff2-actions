@@ -1,0 +1,43 @@
+name: Test Build Action
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test-action:
+    name: Test Build Action
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        id: checkout
+        uses: actions/checkout@v6
+
+      - name: Create test file
+        run: |
+          echo "Hello world" > /fake-file.txt
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Test Local Build Action
+        id: test-action
+        uses: ./shared-actions/build
+        with:
+          project_id: ai2-skiff2-example
+          repo_name: skiff2-actions-build-test
+          config_file: ./shared-actions/build/test/test-skiff2-config.json
+          secrets: |
+            secret=bar
+          secret_envs: |
+            secret_env=ENV_FOO
+          secret_files: |
+            secret_file=/fake-file.txt
+        env:
+          ENV_FOO: foobar
+
+      - name: Print Output
+        id: output
+        run: echo "${{ steps.test-action.outputs.built-images }}"
