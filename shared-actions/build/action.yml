@@ -53,11 +53,11 @@ inputs:
   cache_from:
     description: "List of external cache sources for buildx (e.g., user/app:cache, type=local,src=path/to/dir). Replaces ${DOCKER_REGISTRY}, ${PROJECT_ID}, and ${SERVICE_NAME} with corresponding values."
     required: false
-    default: "type=registry,ref=${DOCKER_REGISTRY}/${PROJECT_ID}/${SERVICE_NAME}:latest"
+    default: type=gha
   cache_to:
     description: "List of cache export destinations for buildx (e.g., user/app:cache, type=local,dest=path/to/dir). Replaces ${DOCKER_REGISTRY}, ${PROJECT_ID}, and ${SERVICE_NAME} with corresponding values."
     required: false
-    default: "type=inline"
+    default: type=gha,mode=max
 
 outputs:
   built-images:
