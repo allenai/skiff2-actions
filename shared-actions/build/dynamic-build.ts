@@ -384,7 +384,7 @@ export async function main() {
       secretFiles,
       shouldPush,
       cacheFrom,
-      cacheTo
+      cacheTo,
     } = getInputs();
 
     const workspaceRoot = process.env.GITHUB_WORKSPACE || process.cwd();
@@ -417,7 +417,7 @@ export async function main() {
       secretFiles,
       shouldPush,
       cacheFrom,
-      cacheTo
+      cacheTo,
     };
 
     await buildAll(config, context, configDir, serviceFilter);

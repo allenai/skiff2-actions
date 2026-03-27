@@ -1,9 +1,6 @@
 {
   "projectName": "skiff2-test-build",
-  "environments": [
-    "main",
-    "qa"
-  ],
+  "environments": ["main", "qa"],
   "services": [
     {
       "name": "build-test",

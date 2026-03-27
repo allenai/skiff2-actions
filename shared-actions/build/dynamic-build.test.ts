@@ -119,7 +119,8 @@ test("buildDockerArgs maps correctly", () => {
     shouldPush: true,
     cacheFrom:
       "type=registry,ref=${DOCKER_REGISTRY}/${PROJECT_ID}/${SERVICE_NAME}:latest",
-    cacheTo: "type=registry,ref=${DOCKER_REGISTRY}/${PROJECT_ID}/${SERVICE_NAME}:latest",
+    cacheTo:
+      "type=registry,ref=${DOCKER_REGISTRY}/${PROJECT_ID}/${SERVICE_NAME}:latest",
   } satisfies BuildContext;
 
   fs.writeFileSync("/credentials", "foo");

@@ -1,9 +1,9 @@
-const CAPTURE_INSIDE_BRACES_REGEX = /\$\{(.*)\}/g
+const CAPTURE_INSIDE_BRACES_REGEX = /\$\{(.*)\}/g;
 
-type Replacements = { [variableName: string]: string}
+type Replacements = { [variableName: string]: string };
 
 /**
- * 
+ *
  * @param valueToExpand A string with variables enclosed like ${VARIABLE}
  * @param replacements An object with variable names as keys and the value to replace them with as the value
  * @returns valueToExpand with specified variables expanded
@@ -16,9 +16,9 @@ export function expandVariables(
   replacements: Replacements,
 ): string {
   const bracesRegex = new RegExp(
-    Object.keys(replacements).map(
-      (replacementKey) => "\\$\\{" + replacementKey + "\\}",
-    ).join("|"),
+    Object.keys(replacements)
+      .map((replacementKey) => "\\$\\{" + replacementKey + "\\}")
+      .join("|"),
     "g",
   );
 
