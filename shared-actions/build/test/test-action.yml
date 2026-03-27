@@ -36,6 +36,8 @@ jobs:
             secret_env=ENV_FOO
           secret_files: |
             secret_file=/fake-file.txt
+          cache_from: ""
+          cache_to: ""
         env:
           ENV_FOO: foobar
 
