@@ -90,7 +90,13 @@ runs:
         INPUT_COMMIT_SHA: ${{ inputs.commit_sha }}
         INPUT_BRANCH_NAME: ${{ inputs.branch_name }}
         INPUT_SERVICES: ${{ inputs.services }}
+        INPUT_BUILD_ARGS: ${{ inputs.build_args }}
+        INPUT_SECRETS: ${{ inputs.secrets }}
+        INPUT_SECRET_ENVS: ${{ inputs.secret_envs }}
+        INPUT_SECRET_FILES: ${{ inputs.secret_files }}
         INPUT_PUSH: ${{ inputs.push }}
+        INPUT_CACHE_FROM: ${{ inputs.cache_from }}
+        INPUT_CACHE_TO: ${{ inputs.cache_to }}
       run: npm run dynamic-build
 
 branding:
