@@ -46,6 +46,10 @@ inputs:
   secret_files:
     description: "List of secret files to expose to the build (e.g., key=filename, MY_SECRET=./secret.txt)"
     required: false
+  push:
+    description: "Pushes the built artifacts to a registry"
+    required: false
+    default: "true"
 
 outputs:
   built-images:

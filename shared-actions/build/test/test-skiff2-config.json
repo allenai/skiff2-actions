@@ -1,6 +1,9 @@
 {
   "projectName": "skiff2-test-build",
-  "environments": ["main", "args-and-secrets"],
+  "environments": [
+    "main",
+    "qa"
+  ],
   "services": [
     {
       "name": "build-test",

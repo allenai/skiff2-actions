@@ -28,6 +28,7 @@ jobs:
         with:
           project_id: ai2-skiff2-example
           repo_name: skiff2-actions-build-test
+          push: false
           config_file: ./shared-actions/build/test/test-skiff2-config.json
           secrets: |
             secret=bar
