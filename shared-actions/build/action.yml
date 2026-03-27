@@ -49,7 +49,8 @@ inputs:
   push:
     description: "Pushes the built artifacts to a registry"
     required: false
-    default: "true"
+    type: boolean
+    default: true
   cache_from:
     description: "List of external cache sources for buildx (e.g., user/app:cache, type=local,src=path/to/dir). Replaces ${DOCKER_REGISTRY}, ${PROJECT_ID}, and ${SERVICE_NAME} with corresponding values."
     required: false
