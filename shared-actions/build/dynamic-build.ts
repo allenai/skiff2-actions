@@ -23,6 +23,7 @@ export interface BuildContext {
   secrets: string[] | null;
   secretEnvs: string[] | null;
   secretFiles: string[] | null;
+  shouldPush: boolean;
 }
 
 interface BuildState {
@@ -67,7 +68,6 @@ export function buildDockerArgs(
   const buildArgs = [
     "buildx",
     "build",
-    "--push",
     "--cache-from",
     `type=registry,ref=${context.registry}/${context.projectId}/${serviceName}:latest`,
     "--cache-to",
@@ -75,6 +75,10 @@ export function buildDockerArgs(
     "--build-arg",
     "BUILDKIT_INLINE_CACHE=1",
   ];
+
+  if (context.shouldPush) {
+    buildArgs.push("--push");
+  }
 
   if (service.extraBuildArgs) {
     // Define environment variables to replace
@@ -314,6 +318,7 @@ interface ParsedInputs {
   secrets: string[] | null;
   secretEnvs: string[] | null;
   secretFiles: string[] | null;
+  shouldPush: boolean;
 }
 
 export function getInputs(): ParsedInputs {
@@ -328,6 +333,7 @@ export function getInputs(): ParsedInputs {
   const secrets = getInputList("secrets", { ignoreComma: true });
   const secretEnvs = getInputList("secret_envs");
   const secretFiles = getInputList("secret_files", { ignoreComma: true });
+  const shouldPush = core.getBooleanInput("push");
 
   return {
     localConfigPath,
@@ -341,6 +347,7 @@ export function getInputs(): ParsedInputs {
     secrets,
     secretEnvs,
     secretFiles,
+    shouldPush
   } satisfies ParsedInputs;
 }
 
@@ -358,6 +365,7 @@ export async function main() {
       secrets,
       secretEnvs,
       secretFiles,
+      shouldPush
     } = getInputs();
 
     const workspaceRoot = process.env.GITHUB_WORKSPACE || process.cwd();
@@ -371,7 +379,7 @@ export async function main() {
     const config = BuildConfigSchema.parse(rawConfig);
 
     const environments = config.environments ?? ["main"];
-    if (!environments.includes(branchName)) {
+    if (shouldPush && !environments.includes(branchName)) {
       core.info(
         `Branch "${branchName}" is not in the configured environments [${environments.join(", ")}]. Skipping build.`,
       );
@@ -388,6 +396,7 @@ export async function main() {
       secrets,
       secretEnvs,
       secretFiles,
+      shouldPush
     };
 
     await buildAll(config, context, configDir, serviceFilter);

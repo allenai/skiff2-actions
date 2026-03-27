@@ -49,6 +49,7 @@ test("getInputs parses correctly", () => {
     "secret_files",
     "secret_file=./secret_credentials\nsecret_two=../not_credentials.py",
   );
+  stubGithubActionInput("push", "true");
 
   const parsedInputs = getInputs();
   expect(parsedInputs).toEqual({
@@ -66,11 +67,12 @@ test("getInputs parses correctly", () => {
       "secret_file=./secret_credentials",
       "secret_two=../not_credentials.py",
     ],
+    shouldPush: true,
   } satisfies ReturnType<typeof getInputs>);
 });
 
-test("buildDockerArgs maps correctly", () => {
-  const testService = {
+const getFakeServiceConfig = () =>
+  ({
     name: "service",
     cwd: "/foo",
     isRootService: true,
@@ -91,7 +93,10 @@ test("buildDockerArgs maps correctly", () => {
       cpu: 1,
       cpuIdle: true,
     },
-  } satisfies ServiceConfig;
+  }) satisfies ServiceConfig;
+
+test("buildDockerArgs maps correctly", () => {
+  const testService = getFakeServiceConfig();
 
   const testContext = {
     registry: "fake-registry",
@@ -103,6 +108,7 @@ test("buildDockerArgs maps correctly", () => {
     secrets: ["secret_token=12345"],
     secretEnvs: ["first_env=foo", "env_two=2"],
     secretFiles: ["creds=/credentials"],
+    shouldPush: true,
   } satisfies BuildContext;
 
   fs.writeFileSync("/credentials", "foo");
@@ -112,13 +118,13 @@ test("buildDockerArgs maps correctly", () => {
   expect(args).toEqual([
     "buildx",
     "build",
-    "--push",
     "--cache-from",
     "type=registry,ref=fake-registry/project/skiff-commodore-fake-service:latest",
     "--cache-to",
     "type=inline",
     "--build-arg",
     "BUILDKIT_INLINE_CACHE=1",
+    "--push",
     "--build-arg",
     "UI_IMAGE=gcr.io/project/skiff-commodore-fake-ui:SHA",
     "--arg",
@@ -142,4 +148,27 @@ test("buildDockerArgs maps correctly", () => {
     "/foo/.Dockerfile",
     "/foo",
   ]);
+});
+
+test("buildDockerArgs does not include push when shouldPush==false", () => {
+  const testService = getFakeServiceConfig();
+
+  const testContext = {
+    registry: "fake-registry",
+    projectId: "project",
+    repoName: "skiff-commodore-fake",
+    commitSha: "SHA",
+    branchName: "branch",
+    buildArgs: null,
+    secrets: null,
+    secretEnvs: null,
+    secretFiles: null,
+    shouldPush: false,
+  } satisfies BuildContext;
+
+  fs.writeFileSync("/credentials", "foo");
+
+  const args = buildDockerArgs(testService, testContext, ".", ["fake-tag"]);
+
+  expect(args).not.toContain("--push");
 });
