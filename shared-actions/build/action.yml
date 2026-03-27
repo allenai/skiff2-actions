@@ -90,6 +90,7 @@ runs:
         INPUT_COMMIT_SHA: ${{ inputs.commit_sha }}
         INPUT_BRANCH_NAME: ${{ inputs.branch_name }}
         INPUT_SERVICES: ${{ inputs.services }}
+        INPUT_PUSH: ${{ inputs.push }}
       run: npm run dynamic-build
 
 branding:
