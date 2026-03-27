@@ -50,6 +50,11 @@ test("getInputs parses correctly", () => {
     "secret_file=./secret_credentials\nsecret_two=../not_credentials.py",
   );
   stubGithubActionInput("push", "true");
+  stubGithubActionInput(
+    "cache_from",
+    "type=registry,ref=${DOCKER_REGISTRY}/${PROJECT_ID}/${SERVICE_NAME}:latest",
+  );
+  stubGithubActionInput("cache_to", "type=inline");
 
   const parsedInputs = getInputs();
   expect(parsedInputs).toEqual({
@@ -68,6 +73,9 @@ test("getInputs parses correctly", () => {
       "secret_two=../not_credentials.py",
     ],
     shouldPush: true,
+    cacheFrom:
+      "type=registry,ref=${DOCKER_REGISTRY}/${PROJECT_ID}/${SERVICE_NAME}:latest",
+    cacheTo: "type=inline",
   } satisfies ReturnType<typeof getInputs>);
 });
 
@@ -109,6 +117,9 @@ test("buildDockerArgs maps correctly", () => {
     secretEnvs: ["first_env=foo", "env_two=2"],
     secretFiles: ["creds=/credentials"],
     shouldPush: true,
+    cacheFrom:
+      "type=registry,ref=${DOCKER_REGISTRY}/${PROJECT_ID}/${SERVICE_NAME}:latest",
+    cacheTo: "type=registry,ref=${DOCKER_REGISTRY}/${PROJECT_ID}/${SERVICE_NAME}:latest",
   } satisfies BuildContext;
 
   fs.writeFileSync("/credentials", "foo");
@@ -118,13 +129,11 @@ test("buildDockerArgs maps correctly", () => {
   expect(args).toEqual([
     "buildx",
     "build",
+    "--push",
     "--cache-from",
     "type=registry,ref=fake-registry/project/skiff-commodore-fake-service:latest",
     "--cache-to",
-    "type=inline",
-    "--build-arg",
-    "BUILDKIT_INLINE_CACHE=1",
-    "--push",
+    "type=registry,ref=fake-registry/project/skiff-commodore-fake-service:latest",
     "--build-arg",
     "UI_IMAGE=gcr.io/project/skiff-commodore-fake-ui:SHA",
     "--arg",
@@ -164,6 +173,9 @@ test("buildDockerArgs does not include push when shouldPush==false", () => {
     secretEnvs: null,
     secretFiles: null,
     shouldPush: false,
+    cacheFrom:
+      "type=registry,ref=${DOCKER_REGISTRY}/${PROJECT_ID}/${SERVICE_NAME}:latest",
+    cacheTo: "type=inline",
   } satisfies BuildContext;
 
   fs.writeFileSync("/credentials", "foo");

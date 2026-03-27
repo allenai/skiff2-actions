@@ -12,6 +12,7 @@ import {
   resolveSecretFile,
   resolveSecretString,
 } from "./secrets.ts";
+import { expandVariables } from "./util.ts";
 
 export interface BuildContext {
   registry: string;
@@ -24,6 +25,8 @@ export interface BuildContext {
   secretEnvs: string[] | null;
   secretFiles: string[] | null;
   shouldPush: boolean;
+  cacheFrom: string | null;
+  cacheTo: string | null;
 }
 
 interface BuildState {
@@ -65,38 +68,46 @@ export function buildDockerArgs(
   tags: string[],
 ): string[] {
   const serviceName = `${context.repoName}-${service.name}`;
-  const buildArgs = [
-    "buildx",
-    "build",
-    "--cache-from",
-    `type=registry,ref=${context.registry}/${context.projectId}/${serviceName}:latest`,
-    "--cache-to",
-    "type=inline",
-    "--build-arg",
-    "BUILDKIT_INLINE_CACHE=1",
-  ];
+  const buildArgs = ["buildx", "build"];
 
   if (context.shouldPush) {
     buildArgs.push("--push");
   }
 
+  if (context.cacheFrom) {
+    const replacements = {
+      DOCKER_REGISTRY: context.registry,
+      PROJECT_ID: context.projectId,
+      SERVICE_NAME: serviceName,
+    } as const;
+
+    const replacedCacheFrom = expandVariables(context.cacheFrom, replacements);
+
+    buildArgs.push("--cache-from", replacedCacheFrom);
+  }
+
+  if (context.cacheTo) {
+    const replacements = {
+      DOCKER_REGISTRY: context.registry,
+      PROJECT_ID: context.projectId,
+      SERVICE_NAME: serviceName,
+    } as const;
+
+    const replacedCacheTo = expandVariables(context.cacheTo, replacements);
+
+    buildArgs.push("--cache-to", replacedCacheTo);
+  }
+
   if (service.extraBuildArgs) {
-    // Define environment variables to replace
-    const envReplacements: Record<string, string> = {
+    const envReplacements = {
       PROJECT_ID: context.projectId,
       REPO_NAME: context.repoName,
       COMMIT_SHA: context.commitSha,
-    };
+    } as const;
 
     service.extraBuildArgs.forEach((arg) => {
-      let processedArg = arg;
-      // Replace each environment variable
-      for (const [name, value] of Object.entries(envReplacements)) {
-        processedArg = processedArg.replace(
-          new RegExp(`\\$\\{${name}\\}`, "g"),
-          value,
-        );
-      }
+      const processedArg = expandVariables(arg, envReplacements);
+
       buildArgs.push(processedArg);
     });
   }
@@ -319,6 +330,8 @@ interface ParsedInputs {
   secretEnvs: string[] | null;
   secretFiles: string[] | null;
   shouldPush: boolean;
+  cacheFrom: string;
+  cacheTo: string;
 }
 
 export function getInputs(): ParsedInputs {
@@ -334,6 +347,8 @@ export function getInputs(): ParsedInputs {
   const secretEnvs = getInputList("secret_envs");
   const secretFiles = getInputList("secret_files", { ignoreComma: true });
   const shouldPush = core.getBooleanInput("push");
+  const cacheFrom = core.getInput("cache_from");
+  const cacheTo = core.getInput("cache_to");
 
   return {
     localConfigPath,
@@ -347,7 +362,9 @@ export function getInputs(): ParsedInputs {
     secrets,
     secretEnvs,
     secretFiles,
-    shouldPush
+    shouldPush,
+    cacheFrom,
+    cacheTo,
   } satisfies ParsedInputs;
 }
 
@@ -365,7 +382,9 @@ export async function main() {
       secrets,
       secretEnvs,
       secretFiles,
-      shouldPush
+      shouldPush,
+      cacheFrom,
+      cacheTo
     } = getInputs();
 
     const workspaceRoot = process.env.GITHUB_WORKSPACE || process.cwd();
@@ -396,7 +415,9 @@ export async function main() {
       secrets,
       secretEnvs,
       secretFiles,
-      shouldPush
+      shouldPush,
+      cacheFrom,
+      cacheTo
     };
 
     await buildAll(config, context, configDir, serviceFilter);
