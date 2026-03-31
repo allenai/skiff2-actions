@@ -7,6 +7,15 @@ function sanitizeBranchTag(branch: string): string {
   return branch.replace(/[^a-zA-Z0-9._-]/g, "-");
 }
 
+interface ProbeConfig {
+    initial_delay_seconds?: number;
+    timeout_seconds?: number;
+    period_seconds?: number;
+    failure_threshold?: number;
+    path?: string; 
+    port?: number;
+}
+
 interface ServiceEntry {
   name: string;
   container_name: string;
@@ -24,6 +33,8 @@ interface ServiceEntry {
     cpu: string;
     cpu_idle: boolean;
   };
+  startup: ProbeConfig;
+  liveness: ProbeConfig;
   vpc?: {
     network: string;
     subnetwork: string;
@@ -117,6 +128,8 @@ async function main() {
         cpu: String(service.machine.cpu),
         cpu_idle: service.machine.cpuIdle,
       },
+      startup: service.startup,
+      liveness: service.liveness
     };
 
     if (service.secondaryImage) {

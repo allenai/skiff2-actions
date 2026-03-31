@@ -9,6 +9,15 @@ export const MachineConfigSchema = z
     cpuIdle: z.boolean().optional().default(true),
   })
   .strict();
+  
+  export const ProbeConfigSchema = z.object({
+    initialDelaySeconds: z.number().optional(),
+    timeoutSeconds: z.number().optional(),
+    periodSeconds: z.number().optional(),
+    failureThreshold: z.number().optional(),
+    path: z.string().optional(),
+    port: z.number().optional()
+  })
 
 const VpcSchema = z
   .object({
@@ -37,6 +46,8 @@ export const ServiceConfigSchema = z
     secretFiles: z.record(z.string(), z.string()).optional().default({}),
     customDomains: z.array(z.string()).optional().default([]),
     machine: MachineConfigSchema.optional().default({}),
+    startup: ProbeConfigSchema.optional().default({}),
+    liveness: ProbeConfigSchema.optional().default({}),
     vpc: VpcSchema.optional(),
   })
   .strict();

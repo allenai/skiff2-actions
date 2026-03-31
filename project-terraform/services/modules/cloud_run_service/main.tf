@@ -38,24 +38,27 @@ resource "google_cloud_run_v2_service" "service" {
 
       # Startup probe to handle application startup
       startup_probe {
-        initial_delay_seconds = 0
-        timeout_seconds       = 1
-        period_seconds        = 3
-        failure_threshold     = 3
-        tcp_socket {
-          port = 8080
+        initial_delay_seconds = var.service.startup.initial_delay_seconds
+        timeout_seconds       = var.service.startup.timeout_seconds
+        period_seconds        = var.service.startup.period_seconds
+        failure_threshold     = var.service.startup.failure_threshold
+
+        http_get {
+          path = var.service.startup.path
+          port = var.service.startup.port
         }
       }
 
       # Liveness probe - using HTTP GET on the root health check endpoint
       liveness_probe {
-        initial_delay_seconds = 0
-        timeout_seconds       = 1
-        period_seconds        = 10
-        failure_threshold     = 3
+        initial_delay_seconds = var.service.liveness.initial_delay_seconds
+        timeout_seconds       = var.service.liveness.timeout_seconds
+        period_seconds        = var.service.liveness.period_seconds
+        failure_threshold     = var.service.liveness.failure_threshold
+
         http_get {
-          path = "/"
-          port = 8080
+          path = var.service.liveness.path
+          port = var.service.liveness.port
         }
       }
 
