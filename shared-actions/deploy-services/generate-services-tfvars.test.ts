@@ -51,7 +51,7 @@ const fakeConfig = {
       },
     },
   ],
-} satisfies BuildConfig;
+} as const satisfies BuildConfig;
 
 test("generateServicesTFVars maps correctly", async () => {
   stubGithubActionInput("config_file", "/fake-config-file.json");
