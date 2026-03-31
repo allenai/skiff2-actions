@@ -26,20 +26,20 @@ variable "service" {
     })
 
     startup = optional(object({
-      initial_delay_seconds = optional(number, 10)
-      timeout_seconds       = optional(number, 3)
-      period_seconds        = optional(number, 3)
-      failure_threshold     = optional(number, 5)
+      initial_delay_seconds = optional(number)
+      timeout_seconds       = optional(number)
+      period_seconds        = optional(number)
+      failure_threshold     = optional(number)
 
       path = optional(string, "/")
       port = optional(number, 8080)
     }), {})
 
     liveness = optional(object({
-      initial_delay_seconds = optional(number, 10)
-      timeout_seconds       = optional(number, 5)
-      period_seconds        = optional(number, 3)
-      failure_threshold     = optional(number, 3)
+      initial_delay_seconds = optional(number)
+      timeout_seconds       = optional(number)
+      period_seconds        = optional(number)
+      failure_threshold     = optional(number)
 
       path = optional(string, "/")
       port = optional(number, 8080)
