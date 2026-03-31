@@ -8,6 +8,7 @@ import {
 import { test, vi, expect, beforeEach } from "vitest";
 import { TempFileContext } from "./secrets.ts";
 import path from "path";
+import { stubGithubActionInput } from "../test-util/stub-github-action-input.ts";
 
 vi.mock("node:fs");
 vi.mock("node:fs/promises");
@@ -29,10 +30,6 @@ beforeEach(() => {
     return tmpName;
   });
 });
-
-function stubGithubActionInput(inputName: string, value: string) {
-  vi.stubEnv(`INPUT_${inputName.toUpperCase()}`, value);
-}
 
 test("getInputs parses correctly", () => {
   stubGithubActionInput("config_file", "fake-config-file.json");
@@ -101,6 +98,8 @@ const getFakeServiceConfig = () =>
       cpu: 1,
       cpuIdle: true,
     },
+    startup: {},
+    liveness: {},
   }) satisfies ServiceConfig;
 
 test("buildDockerArgs maps correctly", () => {

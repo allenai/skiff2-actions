@@ -33,5 +33,25 @@ variable "services" {
       cpu           = string
       cpu_idle      = bool
     })
+
+    startup = optional(object({
+      initial_delay_seconds = optional(number)
+      timeout_seconds       = optional(number)
+      period_seconds        = optional(number)
+      failure_threshold     = optional(number)
+
+      path = optional(string)
+      port = optional(number)
+    }), {})
+
+    liveness = optional(object({
+      initial_delay_seconds = optional(number)
+      timeout_seconds       = optional(number)
+      period_seconds        = optional(number)
+      failure_threshold     = optional(number)
+
+      path = optional(string)
+      port = optional(number)
+    }), {})
   }))
 }

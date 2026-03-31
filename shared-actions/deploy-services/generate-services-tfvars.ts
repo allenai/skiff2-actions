@@ -7,6 +7,15 @@ function sanitizeBranchTag(branch: string): string {
   return branch.replace(/[^a-zA-Z0-9._-]/g, "-");
 }
 
+interface ProbeConfig {
+  initial_delay_seconds?: number;
+  timeout_seconds?: number;
+  period_seconds?: number;
+  failure_threshold?: number;
+  path?: string;
+  port?: number;
+}
+
 interface ServiceEntry {
   name: string;
   container_name: string;
@@ -24,6 +33,8 @@ interface ServiceEntry {
     cpu: string;
     cpu_idle: boolean;
   };
+  startup: ProbeConfig;
+  liveness: ProbeConfig;
   vpc?: {
     network: string;
     subnetwork: string;
@@ -31,7 +42,7 @@ interface ServiceEntry {
   };
 }
 
-async function main() {
+export async function generateServicesTFVars() {
   const configPath = core.getInput("config_file", { required: true });
   const projectId = core.getInput("project_id", { required: true });
   const region = core.getInput("region", { required: true });
@@ -117,6 +128,22 @@ async function main() {
         cpu: String(service.machine.cpu),
         cpu_idle: service.machine.cpuIdle,
       },
+      startup: {
+        initial_delay_seconds: service.startup.initialDelaySeconds,
+        timeout_seconds: service.startup.timeoutSeconds,
+        period_seconds: service.startup.periodSeconds,
+        failure_threshold: service.startup.failureThreshold,
+        path: service.startup.path,
+        port: service.startup.port,
+      },
+      liveness: {
+        initial_delay_seconds: service.liveness.initialDelaySeconds,
+        timeout_seconds: service.liveness.timeoutSeconds,
+        period_seconds: service.liveness.periodSeconds,
+        failure_threshold: service.liveness.failureThreshold,
+        path: service.liveness.path,
+        port: service.liveness.port,
+      },
     };
 
     if (service.secondaryImage) {
@@ -153,11 +180,3 @@ async function main() {
   const projectName = projectId.replace(/^ai2-skiff2-/, "");
   core.setOutput("default_url", `https://${projectName}.pandajungle.org`);
 }
-
-main().catch((error) => {
-  if (error instanceof Error) {
-    core.setFailed(error.message);
-  } else {
-    core.setFailed("Unknown error occurred");
-  }
-});
