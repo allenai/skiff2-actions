@@ -27,6 +27,7 @@ interface ServiceEntry {
   vpc?: {
     network: string;
     subnetwork: string;
+    egress: string;
   };
 }
 

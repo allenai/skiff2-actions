@@ -15,6 +15,7 @@ variable "service" {
     vpc = optional(object({
       network    = string
       subnetwork = string
+      egress     = string
     }))
     machine = object({
       min_instances = number
