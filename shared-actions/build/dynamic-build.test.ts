@@ -118,9 +118,9 @@ test("buildDockerArgs maps correctly", () => {
     secretFiles: ["creds=/credentials"],
     shouldPush: true,
     cacheFrom:
-      "type=registry,ref=${DOCKER_REGISTRY}/${PROJECT_ID}/${SERVICE_NAME}:latest",
+      "type=registry,ref=${DOCKER_REGISTRY}/${PROJECT_ID}/${SERVICE_NAME}:${BRANCH}-cache",
     cacheTo:
-      "type=registry,ref=${DOCKER_REGISTRY}/${PROJECT_ID}/${SERVICE_NAME}:latest",
+      "type=registry,ref=${DOCKER_REGISTRY}/${PROJECT_ID}/${SERVICE_NAME}:${BRANCH}-cache",
   } satisfies BuildContext;
 
   fs.writeFileSync("/credentials", "foo");
@@ -132,9 +132,9 @@ test("buildDockerArgs maps correctly", () => {
     "build",
     "--push",
     "--cache-from",
-    "type=registry,ref=fake-registry/project/skiff-commodore-fake-service:latest",
+    "type=registry,ref=fake-registry/project/skiff-commodore-fake-service:branch-cache",
     "--cache-to",
-    "type=registry,ref=fake-registry/project/skiff-commodore-fake-service:latest",
+    "type=registry,ref=fake-registry/project/skiff-commodore-fake-service:branch-cache",
     "--build-arg",
     "UI_IMAGE=gcr.io/project/skiff-commodore-fake-ui:SHA",
     "--arg",
