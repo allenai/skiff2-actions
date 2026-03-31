@@ -8,12 +8,12 @@ function sanitizeBranchTag(branch: string): string {
 }
 
 interface ProbeConfig {
-    initial_delay_seconds?: number;
-    timeout_seconds?: number;
-    period_seconds?: number;
-    failure_threshold?: number;
-    path?: string; 
-    port?: number;
+  initial_delay_seconds?: number;
+  timeout_seconds?: number;
+  period_seconds?: number;
+  failure_threshold?: number;
+  path?: string;
+  port?: number;
 }
 
 interface ServiceEntry {
@@ -42,7 +42,7 @@ interface ServiceEntry {
   };
 }
 
-async function main() {
+export async function generateServicesTFVars() {
   const configPath = core.getInput("config_file", { required: true });
   const projectId = core.getInput("project_id", { required: true });
   const region = core.getInput("region", { required: true });
@@ -129,7 +129,7 @@ async function main() {
         cpu_idle: service.machine.cpuIdle,
       },
       startup: service.startup,
-      liveness: service.liveness
+      liveness: service.liveness,
     };
 
     if (service.secondaryImage) {
@@ -166,11 +166,3 @@ async function main() {
   const projectName = projectId.replace(/^ai2-skiff2-/, "");
   core.setOutput("default_url", `https://${projectName}.pandajungle.org`);
 }
-
-main().catch((error) => {
-  if (error instanceof Error) {
-    core.setFailed(error.message);
-  } else {
-    core.setFailed("Unknown error occurred");
-  }
-});

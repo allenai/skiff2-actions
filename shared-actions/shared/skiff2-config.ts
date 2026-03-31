@@ -9,15 +9,15 @@ export const MachineConfigSchema = z
     cpuIdle: z.boolean().optional().default(true),
   })
   .strict();
-  
-  export const ProbeConfigSchema = z.object({
-    initialDelaySeconds: z.number().optional(),
-    timeoutSeconds: z.number().optional(),
-    periodSeconds: z.number().optional(),
-    failureThreshold: z.number().optional(),
-    path: z.string().optional(),
-    port: z.number().optional()
-  })
+
+export const ProbeConfigSchema = z.object({
+  initialDelaySeconds: z.number().optional(),
+  timeoutSeconds: z.number().optional(),
+  periodSeconds: z.number().optional(),
+  failureThreshold: z.number().optional(),
+  path: z.string().optional(),
+  port: z.number().optional(),
+});
 
 const VpcSchema = z
   .object({

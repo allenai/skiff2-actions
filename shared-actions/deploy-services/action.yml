@@ -61,7 +61,7 @@ runs:
         INPUT_ENVIRONMENT: ${{ inputs.environment }}
         INPUT_SERVICES: ${{ inputs.services }}
         TERRAFORM_DIR: ${{ github.action_path }}/../../project-terraform/services
-      run: node ./deploy-services/generate-services-tfvars.ts
+      run: node ./deploy-services/index.ts
 
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
