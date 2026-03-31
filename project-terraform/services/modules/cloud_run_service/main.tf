@@ -157,6 +157,17 @@ resource "google_cloud_run_v2_service" "service" {
       }
     }
 
+    dynamic "vpc_access" {
+      for_each = var.service.vpc != null ? [var.service.vpc] : []
+      content {
+        network_interfaces {
+          network    = vpc_access.value.network
+          subnetwork = vpc_access.value.subnetwork
+        }
+        egress = vpc_access.value.egress
+      }
+    }
+
     timeout                          = "300s"
     max_instance_request_concurrency = 80
   }

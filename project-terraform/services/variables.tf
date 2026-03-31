@@ -21,6 +21,11 @@ variable "services" {
     custom_domains           = list(string)
     image_tag                = string
     deployment_environment   = string
+    vpc = optional(object({
+      network    = string
+      subnetwork = string
+      egress     = string
+    }))
     machine = object({
       min_instances = number
       max_instances = number

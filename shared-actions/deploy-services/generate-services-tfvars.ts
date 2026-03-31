@@ -24,6 +24,11 @@ interface ServiceEntry {
     cpu: string;
     cpu_idle: boolean;
   };
+  vpc?: {
+    network: string;
+    subnetwork: string;
+    egress: string;
+  };
 }
 
 async function main() {
@@ -117,6 +122,10 @@ async function main() {
     if (service.secondaryImage) {
       services[serviceKey].secondary_container_name =
         `${repoName}-${service.secondaryImage}`;
+    }
+
+    if (service.vpc) {
+      services[serviceKey].vpc = service.vpc;
     }
   }
 

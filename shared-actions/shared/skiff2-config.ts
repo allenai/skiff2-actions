@@ -10,6 +10,17 @@ export const MachineConfigSchema = z
   })
   .strict();
 
+const VpcSchema = z
+  .object({
+    network: z.string(),
+    subnetwork: z.string(),
+    egress: z
+      .enum(["PRIVATE_RANGES_ONLY", "ALL_TRAFFIC"])
+      .optional()
+      .default("PRIVATE_RANGES_ONLY"),
+  })
+  .strict()
+
 export const ServiceConfigSchema = z
   .object({
     name: z.string().min(1, "Service name is required"),
@@ -26,6 +37,7 @@ export const ServiceConfigSchema = z
     secretFiles: z.record(z.string(), z.string()).optional().default({}),
     customDomains: z.array(z.string()).optional().default([]),
     machine: MachineConfigSchema.optional().default({}),
+    vpc: VpcSchema.optional(),
   })
   .strict();
 
