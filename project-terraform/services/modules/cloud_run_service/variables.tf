@@ -25,7 +25,7 @@ variable "service" {
       cpu_idle      = bool
     })
 
-    startup = object({
+    startup = optional(object({
       initial_delay_seconds = optional(number, 10)
       timeout_seconds       = optional(number, 3)
       period_seconds        = optional(3)
@@ -33,9 +33,9 @@ variable "service" {
 
       path = optional(string, "/")
       port = optional(number, 8080)
-    })
+    }), {})
 
-    liveness = object({
+    liveness = optional(object({
       initial_delay_seconds = optional(number, 10)
       timeout_seconds       = optional(number, 5)
       period_seconds        = optional(number, 3)
@@ -43,7 +43,7 @@ variable "service" {
 
       path = optional(string, "/")
       port = optional(number, 8080)
-    })
+    }), {})
   })
 }
 
