@@ -40,8 +40,8 @@ variable "services" {
       period_seconds        = optional(number)
       failure_threshold     = optional(number)
 
-      path = optional(string, "/")
-      port = optional(number, 8080)
+      path = optional(string)
+      port = optional(number)
     }), {})
 
     liveness = optional(object({
@@ -50,8 +50,8 @@ variable "services" {
       period_seconds        = optional(number)
       failure_threshold     = optional(number)
 
-      path = optional(string, "/")
-      port = optional(number, 8080)
+      path = optional(string)
+      port = optional(number)
     }), {})
   }))
 }
