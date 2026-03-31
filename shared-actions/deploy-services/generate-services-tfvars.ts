@@ -128,8 +128,22 @@ export async function generateServicesTFVars() {
         cpu: String(service.machine.cpu),
         cpu_idle: service.machine.cpuIdle,
       },
-      startup: service.startup,
-      liveness: service.liveness,
+      startup: {
+        initial_delay_seconds: service.startup.initialDelaySeconds,
+        timeout_seconds: service.startup.timeoutSeconds,
+        period_seconds: service.startup.periodSeconds,
+        failure_threshold: service.startup.failureThreshold,
+        path: service.startup.path,
+        port: service.startup.port,
+      },
+      liveness: {
+        initial_delay_seconds: service.liveness.initialDelaySeconds,
+        timeout_seconds: service.liveness.timeoutSeconds,
+        period_seconds: service.liveness.periodSeconds,
+        failure_threshold: service.liveness.failureThreshold,
+        path: service.liveness.path,
+        port: service.liveness.port,
+      },
     };
 
     if (service.secondaryImage) {
