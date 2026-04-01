@@ -1,14 +1,12 @@
 import { z } from "zod";
 
-export const MachineConfigSchema = z
-  .object({
-    minInstances: z.number().int().min(0).optional().default(1),
-    maxInstances: z.number().int().min(1).optional().default(10),
+export const MachineConfigSchema = z.strictObject({
+    minInstances: z.int().min(0).optional().default(1),
+    maxInstances: z.int().min(1).optional().default(10),
     memory: z.string().optional().default("512Mi"),
-    cpu: z.number().int().min(1).optional().default(1),
+    cpu: z.int().min(1).optional().default(1),
     cpuIdle: z.boolean().optional().default(true),
-  })
-  .strict();
+  });
 
 export const ProbeConfigSchema = z.object({
   initialDelaySeconds: z.number().optional(),
@@ -19,8 +17,7 @@ export const ProbeConfigSchema = z.object({
   port: z.number().optional(),
 });
 
-const VpcSchema = z
-  .object({
+const VpcSchema = z.strictObject({
     network: z.string(),
     subnetwork: z.string(),
     egress: z
@@ -28,10 +25,8 @@ const VpcSchema = z
       .optional()
       .default("PRIVATE_RANGES_ONLY"),
   })
-  .strict()
 
-export const ServiceConfigSchema = z
-  .object({
+export const ServiceConfigSchema = z.strictObject({
     name: z.string().min(1, "Service name is required"),
     cwd: z.string().min(1, "Service cwd is required"),
     isRootService: z.boolean().optional(),
@@ -45,22 +40,20 @@ export const ServiceConfigSchema = z
     allowDelete: z.boolean().optional().default(false),
     secretFiles: z.record(z.string(), z.string()).optional().default({}),
     customDomains: z.array(z.string()).optional().default([]),
-    machine: MachineConfigSchema.optional().default({}),
+    machine: MachineConfigSchema.optional().prefault({}),
     startup: ProbeConfigSchema.optional().default({}),
     liveness: ProbeConfigSchema.optional().default({}),
     vpc: VpcSchema.optional(),
-  })
-  .strict();
+  });
 
-export const BuildConfigSchema = z
-  .object({
+export const BuildConfigSchema = z.strictObject({
     projectName: z.string().min(1).optional(),
     environments: z.array(z.string().min(1)).optional(),
     services: z
       .array(ServiceConfigSchema)
       .min(1, "At least one service is required"),
-  })
-  .strict();
+    "$schema": z.url().optional()
+  });
 
 export type ServiceConfig = z.infer<typeof ServiceConfigSchema>;
 export type BuildConfig = z.infer<typeof BuildConfigSchema>;
