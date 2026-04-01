@@ -2,11 +2,8 @@ import * as core from "@actions/core";
 import { readFile, writeFile } from "fs/promises";
 import { resolve } from "path";
 import { BuildConfigSchema } from "../shared/skiff2-config.ts";
+import { sanitizeBranchTag } from "../shared/utils.ts";
 import { mapServices } from "./map-service.ts";
-
-function sanitizeBranchTag(branch: string): string {
-  return branch.replace(/[^a-zA-Z0-9._-]/g, "-");
-}
 
 export async function generateServicesTFVars() {
   const configPath = core.getInput("config_file", { required: true });
