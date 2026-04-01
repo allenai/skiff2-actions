@@ -1,0 +1,29 @@
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  job_id:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
+    steps:
+    - id: 'checkout'
+      uses: 'actions/checkout@v4'
+
+    - id: 'auth'
+      uses: 'google-github-actions/auth@v3'
+      with:
+        project_id: ${{ vars.SKIFF2_PROJECT_ID }}
+        workload_identity_provider: ${{ vars.SKIFF2_WORKLOAD_IDENTITY_PROVIDER }}
+
+    - id: 'upload-file'
+      uses: 'google-github-actions/upload-cloud-storage@v3'
+      with:
+        project_id: ai2-skiff-2 
+        path: '${{ github.workspace }}/skiff2-config.schema.json'
+        parent: false
+        destination: 'skiff2-general'
