@@ -2,10 +2,7 @@ import * as core from "@actions/core";
 import { readFile, writeFile } from "fs/promises";
 import { resolve } from "path";
 import { BuildConfigSchema } from "../shared/skiff2-config.ts";
-
-function sanitizeBranchTag(branch: string): string {
-  return branch.replace(/[^a-zA-Z0-9._-]/g, "-");
-}
+import { sanitizeBranchTag } from "../shared/utils.ts";
 
 interface ProbeConfig {
   initial_delay_seconds?: number;
