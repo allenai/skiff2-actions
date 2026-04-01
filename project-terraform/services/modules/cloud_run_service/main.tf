@@ -13,7 +13,7 @@ resource "google_cloud_run_v2_service" "service" {
   launch_stage         = "BETA" # we are using the IAP on cloud run which is in beta atm.
   iap_enabled          = true
   invoker_iam_disabled = true
-  deletion_protection  = !var.service.allow_delete
+  deletion_protection  = var.deployment_environment == "prod" || !var.service.allow_delete
 
   template {
     scaling {

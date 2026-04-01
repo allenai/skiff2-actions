@@ -87,6 +87,41 @@ runs:
           terraform plan -input=false
         fi
 
+    - name: Cleanup deleted environments
+      if: inputs.environment == 'main'
+      shell: bash
+      working-directory: ${{ github.action_path }}/../
+      env:
+        INPUT_CONFIG_FILE: ${{ inputs.config_file }}
+        TERRAFORM_DIR: ${{ github.action_path }}/../../project-terraform/services
+      run: |
+        active=$(node ./deploy-services/list-active-environments.ts)
+        existing=$(terraform -chdir="$TERRAFORM_DIR" workspace list | sed 's/^\*\?\s*//' | grep -v '^$')
+
+        echo "Active environments: $active"
+        echo "Existing environments: $existing"
+
+        for environ in $existing; do
+          if ! echo "$active" | grep -qw "$environ"; then
+            if [[ "${{ inputs.command }}" != "apply" ]]; then
+              echo "Would delete environment: $environ"
+              continue
+            fi
+            echo "Deleting environment: $environ"
+            if (
+              terraform -chdir="$TERRAFORM_DIR" workspace select "$environ" &&
+              terraform -chdir="$TERRAFORM_DIR" destroy -input=false -auto-approve &&
+              terraform -chdir="$TERRAFORM_DIR" workspace select default &&
+              terraform -chdir="$TERRAFORM_DIR" workspace delete "$environ"
+            ); then
+              echo "Successfully deleted environment: $environ"
+            else
+              echo "::warning::Failed to delete environment: $environ"
+              terraform -chdir="$TERRAFORM_DIR" workspace select default || true
+            fi
+          fi
+        done
+
 branding:
   icon: settings
   color: purple
