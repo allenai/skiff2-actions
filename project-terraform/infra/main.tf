@@ -56,15 +56,6 @@ locals {
     for key, svc in local.prod_services : key => svc if key != var.default_service
   }
 
-  # Exclude allow_delete services from the URL map (prevents bug where deleting a service errors because the url map prevents the backend from being deleted)
-  url_map_non_default_prod_services = {
-    for key, svc in local.non_default_prod_services : key => svc if !svc.allow_delete
-  }
-
-  url_map_branch_services = {
-    for key, svc in local.branch_services : key => svc if !svc.allow_delete
-  }
-
   # Distinct branch names (non-prod)
   branch_names = distinct([for _, svc in local.branch_services : svc.deployment_environment])
 
@@ -77,7 +68,7 @@ locals {
 
   # Non-default branch services (for branch subdomain routing)
   non_default_branch_services = {
-    for key, svc in local.url_map_branch_services : key => svc
+    for key, svc in local.branch_services : key => svc
     if key != lookup(local.branch_default_keys, svc.deployment_environment, "")
   }
 
@@ -140,7 +131,7 @@ resource "google_compute_url_map" "default" {
 
   # Route each non-default prod service's subdomain to its backend
   dynamic "host_rule" {
-    for_each = local.url_map_non_default_prod_services
+    for_each = local.non_default_prod_services
     content {
       hosts = concat(
         [
@@ -155,10 +146,10 @@ resource "google_compute_url_map" "default" {
   }
 
   dynamic "path_matcher" {
-    for_each = local.url_map_non_default_prod_services
+    for_each = local.non_default_prod_services
     content {
       name            = path_matcher.key
-      default_service = module.lb-http.backend_services[path_matcher.key].self_link
+      default_service = "projects/${var.project_id}/global/backendServices/default-lb-backend-${path_matcher.key}"
     }
   }
 
@@ -179,7 +170,7 @@ resource "google_compute_url_map" "default" {
     for_each = local.branch_default_keys
     content {
       name            = "branch-${path_matcher.key}"
-      default_service = module.lb-http.backend_services[path_matcher.value].self_link
+      default_service = "projects/${var.project_id}/global/backendServices/default-lb-backend-${path_matcher.value}"
     }
   }
 
