@@ -13,8 +13,20 @@ jobs:
       id-token: 'write'
 
     steps:
-    - id: 'checkout'
+    - id: checkout
       uses: 'actions/checkout@v4'
+
+    - name: Use Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '24'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - id: create-schema
+      name: Create JSON Schema
+      run: npm run create-json-schema
 
     - id: 'auth'
       uses: 'google-github-actions/auth@v3'
