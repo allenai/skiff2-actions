@@ -103,8 +103,8 @@ runs:
         active=$(node ./deploy-services/list-active-environments.ts)
         existing=$(terraform -chdir="$TERRAFORM_DIR" workspace list | sed 's/^\*\?\s*//' | grep -v '^$')
 
-        echo "Active environments: $active"
-        echo "Existing environments: $existing"
+        echo "Active environments: $(echo $active | tr '\n' ', ' | sed 's/,$//')"
+        echo "Existing environments: $(echo $existing | tr '\n' ', ' | sed 's/,$//')"
 
         for environ in $existing; do
           if ! echo "$active" | grep -qw "$environ"; then
