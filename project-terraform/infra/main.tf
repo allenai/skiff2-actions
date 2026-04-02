@@ -41,61 +41,16 @@ resource "google_project_iam_member" "cloud_run_secret_access" {
 locals {
   project_name = trimprefix(var.project_id, "ai2-skiff2-")
 
-  # Prod (main branch) services — keys where deployment_environment is "prod"
-  prod_services = {
-    for key, svc in var.services : key => svc if svc.deployment_environment == "prod"
+  domain_families = {
+    allenai     = "allen.ai"
+    apps        = "apps.allenai.org"
+    pandajungle = "pandajungle.org"
   }
 
-  # Branch (non-prod) services
-  branch_services = {
-    for key, svc in var.services : key => svc if svc.deployment_environment != "prod"
-  }
+  primary_domain_key = "pandajungle"
 
-  # Non-default prod services (for subdomain routing)
-  non_default_prod_services = {
-    for key, svc in local.prod_services : key => svc if key != var.default_service
-  }
-
-  # Distinct branch names (non-prod)
-  branch_names = distinct([for _, svc in local.branch_services : svc.deployment_environment])
-
-  # Default service key per branch (first service found for each branch)
-  branch_default_keys = {
-    for branch in local.branch_names : branch => [
-      for key, svc in local.branch_services : key if svc.deployment_environment == branch
-    ][0]
-  }
-
-  # Non-default branch services (for branch subdomain routing)
-  non_default_branch_services = {
-    for key, svc in local.branch_services : key => svc
-    if key != lookup(local.branch_default_keys, svc.deployment_environment, "")
-  }
-
-  # All domains for the SSL certificate
-  all_domains = concat(
-    # pandajungle.org — prod
-    ["${local.project_name}.pandajungle.org"],
-    [for key, _ in local.non_default_prod_services : "${_.name}.${local.project_name}.pandajungle.org"],
-
-    # apps.allenai.org and allen.ai — prod
-    ["${local.project_name}.allen.ai", "${local.project_name}.apps.allenai.org"],
-    [for key, _ in local.non_default_prod_services : "${_.name}.${local.project_name}.allen.ai"],
-    [for key, _ in local.non_default_prod_services : "${_.name}.${local.project_name}.apps.allenai.org"],
-
-    # Branch domains — branch.project.pandajungle.org for default service per branch
-    [for branch in local.branch_names : "${branch}.${local.project_name}.pandajungle.org"],
-    [for branch in local.branch_names : "${branch}.${local.project_name}.allen.ai"],
-    [for branch in local.branch_names : "${branch}.${local.project_name}.apps.allenai.org"],
-
-    # Branch domains — branch.service.project.pandajungle.org for non-default services
-    [for key, svc in local.non_default_branch_services : "${svc.deployment_environment}.${svc.name}.${local.project_name}.pandajungle.org"],
-    [for key, svc in local.non_default_branch_services : "${svc.deployment_environment}.${svc.name}.${local.project_name}.allen.ai"],
-    [for key, svc in local.non_default_branch_services : "${svc.deployment_environment}.${svc.name}.${local.project_name}.apps.allenai.org"],
-
-    # Per-service custom domains (prod only)
-    flatten([for _, svc in local.prod_services : svc.custom_domains]),
-  )
+  # Base domains for this project (e.g., "myapp.allen.ai")
+  base_domains = { for key, domain in local.domain_families : key => "${local.project_name}.${domain}" }
 }
 
 data "google_compute_global_address" "lb_ip" {
@@ -108,118 +63,159 @@ data "google_compute_security_policy" "cloud_armor" {
   project = var.project_id
 }
 
-resource "google_compute_region_network_endpoint_group" "default" {
-  for_each              = var.services
-  name                  = "${each.value.deployment_environment}-${each.value.name}-neg"
+# Create URL Mask NEGs for base service URL on each domain
+# <service>.project.domain to the matching Cloud Run service by name.
+resource "google_compute_region_network_endpoint_group" "url_mask" {
+  for_each              = local.domain_families
+  name                  = "${local.project_name}-${each.key}-neg"
   network_endpoint_type = "SERVERLESS"
   region                = var.region
   project               = var.project_id
   cloud_run {
-    service = "${each.value.deployment_environment}-${each.value.name}"
+    url_mask = "<service>.${local.base_domains[each.key]}"
   }
 }
 
-# Custom URL map with host-based routing for service subdomains
+# Explicit NEG for prod default service (bare domain routing)
+resource "google_compute_region_network_endpoint_group" "default_service" {
+  name                  = "${local.project_name}-default-neg"
+  network_endpoint_type = "SERVERLESS"
+  region                = var.region
+  project               = var.project_id
+  cloud_run {
+    service = var.default_service
+  }
+}
+
+# Explicit NEGs for branch default services (branch bare domain routing)
+resource "google_compute_region_network_endpoint_group" "branch_default" {
+  for_each              = toset(var.branch_environments)
+  name                  = "${local.project_name}-${each.value}-default-neg"
+  network_endpoint_type = "SERVERLESS"
+  region                = var.region
+  project               = var.project_id
+  cloud_run {
+    service = "${each.value}-${var.default_service}"
+  }
+}
+
+# Explicit NEGs for custom domain mappings
+resource "google_compute_region_network_endpoint_group" "custom_domain" {
+  for_each              = var.custom_domain_mappings
+  name                  = "${local.project_name}-custom-${replace(each.key, ".", "-")}-neg"
+  network_endpoint_type = "SERVERLESS"
+  region                = var.region
+  project               = var.project_id
+  cloud_run {
+    service = each.value
+  }
+}
+
+# URL Map
+#
 resource "google_compute_url_map" "default" {
   name    = "${local.project_name}-url-map"
   project = var.project_id
 
-  # Default service handles project_name.pandajungle.org and any unmatched hosts
-  # NOTE: We construct self_links manually instead of referencing module.lb-http.backend_services[...].self_link
-  # to avoid an implicit Terraform dependency that causes GCP to reject backend deletion before the URL map is updated.
-  default_service = "projects/${var.project_id}/global/backendServices/default-lb-backend-default"
+  # Unmatched hosts fall through to the `primary_domain_key` URL mask backend
+  # which set to pandajungle, as it _should_ always exist.
+  default_service = module.lb-http.backend_services["url-mask-${local.primary_domain_key}"].self_link
 
-  # Route each non-default prod service's subdomain to its backend
+  # Route each domain family's wildcard to its URL mask backend
   dynamic "host_rule" {
-    for_each = local.non_default_prod_services
+    for_each = local.domain_families
     content {
-      hosts = concat(
-        [
-          "${host_rule.value.name}.${local.project_name}.pandajungle.org",
-          "${host_rule.value.name}.${local.project_name}.allen.ai",
-          "${host_rule.value.name}.${local.project_name}.apps.allenai.org",
-        ],
-        host_rule.value.custom_domains,
-      )
-      path_matcher = host_rule.key
+      hosts        = ["*.${local.base_domains[host_rule.key]}"]
+      path_matcher = "url-mask-${host_rule.key}"
     }
   }
 
   dynamic "path_matcher" {
-    for_each = local.non_default_prod_services
+    for_each = local.domain_families
     content {
-      name            = path_matcher.key
-      default_service = "projects/${var.project_id}/global/backendServices/default-lb-backend-${path_matcher.key}"
+      name            = "url-mask-${path_matcher.key}"
+      default_service = module.lb-http.backend_services["url-mask-${path_matcher.key}"].self_link
     }
   }
 
-  # Route branch default service: branch.project.pandajungle.org
+  # Bare domains -> prod default service
+  host_rule {
+    hosts        = values(local.base_domains)
+    path_matcher = "bare-domain"
+  }
+
+  path_matcher {
+    name            = "bare-domain"
+    default_service = module.lb-http.backend_services["default"].self_link
+  }
+
+  # Branch bare domains -> branch default service
   dynamic "host_rule" {
-    for_each = local.branch_default_keys
+    for_each = toset(var.branch_environments)
     content {
-      hosts = [
-        "${host_rule.key}.${local.project_name}.pandajungle.org",
-        "${host_rule.key}.${local.project_name}.allen.ai",
-        "${host_rule.key}.${local.project_name}.apps.allenai.org",
-      ]
-      path_matcher = "branch-${host_rule.key}"
+      hosts = [for _, d in local.base_domains : "${host_rule.value}.${d}"]
+      path_matcher = "branch-${host_rule.value}"
     }
   }
 
   dynamic "path_matcher" {
-    for_each = local.branch_default_keys
+    for_each = toset(var.branch_environments)
     content {
-      name            = "branch-${path_matcher.key}"
-      default_service = "projects/${var.project_id}/global/backendServices/default-lb-backend-${path_matcher.value}"
+      name            = "branch-${path_matcher.value}"
+      default_service = module.lb-http.backend_services["branch-${path_matcher.value}"].self_link
     }
   }
 
-  # Route branch non-default services: branch.service.project.pandajungle.org
+  # Custom domains -> explicit service backends
   dynamic "host_rule" {
-    for_each = local.non_default_branch_services
+    for_each = var.custom_domain_mappings
     content {
-      hosts = [
-        "${host_rule.value.deployment_environment}.${host_rule.value.name}.${local.project_name}.pandajungle.org",
-        "${host_rule.value.deployment_environment}.${host_rule.value.name}.${local.project_name}.allen.ai",
-        "${host_rule.value.deployment_environment}.${host_rule.value.name}.${local.project_name}.apps.allenai.org",
-      ]
-      path_matcher = host_rule.key
+      hosts        = [host_rule.key]
+      path_matcher = "custom-${replace(host_rule.key, ".", "-")}"
     }
   }
 
   dynamic "path_matcher" {
-    for_each = local.non_default_branch_services
+    for_each = var.custom_domain_mappings
     content {
-      name            = path_matcher.key
-      default_service = "projects/${var.project_id}/global/backendServices/default-lb-backend-${path_matcher.key}"
+      name            = "custom-${replace(path_matcher.key, ".", "-")}"
+      default_service = module.lb-http.backend_services["custom-${replace(path_matcher.key, ".", "-")}"].self_link
     }
   }
 }
 
-resource "google_certificate_manager_certificate_map" "default" {
+# Wildcard certs and cert map are managed by skiff2.
+# Per-project infra only handles custom domain certs.
+#
+data "google_certificate_manager_certificate_map" "default" {
   name    = "${local.project_name}-cert-map"
   project = var.project_id
 }
 
-resource "google_certificate_manager_certificate" "default" {
-  for_each = toset(local.all_domains)
-  name     = "${local.project_name}-cert-${replace(each.value, ".", "-")}"
+# Individual certs for custom domains (HTTP/LB authorization — no DNS needed)
+resource "google_certificate_manager_certificate" "custom" {
+  for_each = var.custom_domain_mappings
+  name     = "${local.project_name}-cert-${replace(each.key, ".", "-")}"
   project  = var.project_id
 
   managed {
-    domains = [each.value]
+    domains = [each.key]
   }
 }
 
-resource "google_certificate_manager_certificate_map_entry" "default" {
-  for_each     = toset(local.all_domains)
-  name         = "${local.project_name}-entry-${replace(each.value, ".", "-")}"
+# Cert map entries — custom domains only (wildcard entries managed by skiff2)
+resource "google_certificate_manager_certificate_map_entry" "custom" {
+  for_each     = var.custom_domain_mappings
+  name         = "${local.project_name}-entry-${replace(each.key, ".", "-")}"
   project      = var.project_id
-  map          = google_certificate_manager_certificate_map.default.name
-  certificates = [google_certificate_manager_certificate.default[each.value].id]
-  hostname     = each.value
+  map          = data.google_certificate_manager_certificate_map.default.name
+  certificates = [google_certificate_manager_certificate.custom[each.key].id]
+  hostname     = each.key
 }
 
+
+# Load Balancer
+# 
 module "lb-http" {
   source  = "GoogleCloudPlatform/lb-http/google//modules/serverless_negs"
   version = "~> 12.0"
@@ -233,15 +229,15 @@ module "lb-http" {
   address        = data.google_compute_global_address.lb_ip.address
 
   ssl             = true
-  certificate_map = google_certificate_manager_certificate_map.default.id
+  certificate_map = data.google_certificate_manager_certificate_map.default.id
   https_redirect  = true
-
 
   create_url_map = false
   url_map        = google_compute_url_map.default.self_link
 
-  backends = {
-    for key, svc in var.services : (key == var.default_service ? "default" : key) => {
+  backends = merge(
+    # URL mask backends — one per domain family
+    { for key, neg in google_compute_region_network_endpoint_group.url_mask : "url-mask-${key}" => {
       protocol        = "HTTPS"
       enable_cdn      = false
       security_policy = data.google_compute_security_policy.cloud_armor.self_link
@@ -251,15 +247,65 @@ module "lb-http" {
         sample_rate = 1.0
       }
 
-      groups = [
-        {
-          group = google_compute_region_network_endpoint_group.default[key].id
-        }
-      ]
+      groups = [{ group = neg.id }]
 
       iap_config = {
         enable = false
       }
-    }
-  }
+    } },
+
+    # Prod default backend
+    { "default" = {
+      protocol        = "HTTPS"
+      enable_cdn      = false
+      security_policy = data.google_compute_security_policy.cloud_armor.self_link
+
+      log_config = {
+        enable      = true
+        sample_rate = 1.0
+      }
+
+      groups = [{ group = google_compute_region_network_endpoint_group.default_service.id }]
+
+      iap_config = {
+        enable = false
+      }
+    } },
+
+    # Branch default backends
+    { for key, neg in google_compute_region_network_endpoint_group.branch_default : "branch-${key}" => {
+      protocol        = "HTTPS"
+      enable_cdn      = false
+      security_policy = data.google_compute_security_policy.cloud_armor.self_link
+
+      log_config = {
+        enable      = true
+        sample_rate = 1.0
+      }
+
+      groups = [{ group = neg.id }]
+
+      iap_config = {
+        enable = false
+      }
+    } },
+
+    # Custom domain backends
+    { for key, neg in google_compute_region_network_endpoint_group.custom_domain : "custom-${replace(key, ".", "-")}" => {
+      protocol        = "HTTPS"
+      enable_cdn      = false
+      security_policy = data.google_compute_security_policy.cloud_armor.self_link
+
+      log_config = {
+        enable      = true
+        sample_rate = 1.0
+      }
+
+      groups = [{ group = neg.id }]
+
+      iap_config = {
+        enable = false
+      }
+    } },
+  )
 }
