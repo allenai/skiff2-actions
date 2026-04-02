@@ -41,6 +41,6 @@ jobs:
       uses: 'google-github-actions/upload-cloud-storage@v3'
       with:
         project_id: ai2-skiff-2 
-        path: '${{ github.workspace }}/skiff2-config.schema.json'
+        path: '${{ github.workspace }}/shared-actions/skiff2-config.schema.json'
         parent: false
         destination: 'skiff2-general'
