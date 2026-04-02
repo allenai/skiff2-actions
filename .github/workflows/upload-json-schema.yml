@@ -5,7 +5,8 @@ on:
       - upload-json-schema
 
 jobs:
-  job_id:
+  upload-json-schema:
+    name: Upload JSON Schema
     runs-on: ubuntu-latest
     permissions:
       contents: 'read'
