@@ -44,3 +44,4 @@ jobs:
         path: '${{ github.workspace }}/shared-actions/skiff2-config.schema.json'
         parent: false
         destination: 'skiff2-general'
+        process_gcloudignore: false 
