@@ -9,22 +9,19 @@ variable "region" {
   default     = "us-west1"
 }
 
-variable "services" {
-  description = "Map of Cloud Run services (all environments). Used for routing configuration."
-  type = map(object({
-    name                     = string
-    container_name           = string
-    secondary_container_name = optional(string)
-    allow_unauthenticated    = bool
-    allow_delete             = bool
-    secret_files             = map(string)
-    custom_domains           = list(string)
-    image_tag                = string
-    deployment_environment   = string
-  }))
+variable "default_service" {
+  description = "Cloud Run service name for the default/root service (e.g., 'ui')"
+  type        = string
 }
 
-variable "default_service" {
-  description = "Key from the services map to use as the default load balancer backend"
-  type        = string
+variable "branch_environments" {
+  description = "List of active non-prod branch environment names (sanitized)"
+  type        = list(string)
+  default     = []
+}
+
+variable "custom_domain_mappings" {
+  description = "Map of custom domain to Cloud Run service name"
+  type        = map(string)
+  default     = {}
 }

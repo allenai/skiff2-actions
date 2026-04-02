@@ -4,23 +4,10 @@ import { resolve } from "path";
 import { BuildConfigSchema } from "../shared/skiff2-config.ts";
 import { sanitizeBranchTag } from "../shared/utils.ts";
 
-interface ServiceEntry {
-  name: string;
-  container_name: string;
-  secondary_container_name?: string;
-  allow_unauthenticated: boolean;
-  allow_delete: boolean;
-  secret_files: Record<string, string>;
-  custom_domains: string[];
-  image_tag: string;
-  deployment_environment: string;
-}
-
 async function main() {
   const configPath = core.getInput("config_file", { required: true });
   const projectId = core.getInput("project_id", { required: true });
   const region = core.getInput("region", { required: true });
-  const repoName = core.getInput("repo_name", { required: true });
   const terraformDir = process.env.TERRAFORM_DIR;
 
   if (!terraformDir) {
@@ -38,61 +25,43 @@ async function main() {
 
   const allEnvironments = config.environments ?? ["main"];
 
-  // Infra needs ALL environments for routing configuration
-  const services: Record<string, ServiceEntry> = {};
+  // Find the default (root) service
   let defaultServiceName: string | undefined;
-
-  for (const branch of allEnvironments) {
-    const isMainBranch = branch === "main";
-    const deploymentEnv = isMainBranch ? "prod" : sanitizeBranchTag(branch);
-    const imageTag = sanitizeBranchTag(branch);
-
-    for (const service of config.services) {
-      if (service.deploy === false) continue;
-
-      const serviceKey = isMainBranch
-        ? service.name
-        : `${deploymentEnv}-${service.name}`;
-
-      services[serviceKey] = {
-        name: service.name,
-        container_name: `${repoName}-${service.name}`,
-        allow_unauthenticated: service.allowUnauthenticated,
-        allow_delete: service.allowDelete,
-        secret_files: service.secretFiles,
-        custom_domains: isMainBranch ? service.customDomains : [],
-        image_tag: imageTag,
-        deployment_environment: deploymentEnv,
-      };
-
-      if (service.secondaryImage) {
-        services[serviceKey].secondary_container_name =
-          `${repoName}-${service.secondaryImage}`;
-      }
-
-      if (isMainBranch && (service.isRootService || !defaultServiceName)) {
-        defaultServiceName = serviceKey;
-      }
+  for (const service of config.services) {
+    if (service.deploy === false) continue;
+    if (service.isRootService || !defaultServiceName) {
+      defaultServiceName = service.name;
     }
-  }
-
-  if (Object.keys(services).length === 0) {
-    throw new Error("No deployable services found in config");
   }
 
   if (!defaultServiceName) {
     throw new Error("No default service could be determined");
   }
 
-  core.info(
-    `Found ${Object.keys(services).length} service(s) across all environments, default: ${defaultServiceName}`,
-  );
+  // Build custom domain mappings from service configs (prod only)
+  const customDomainMappings: Record<string, string> = {};
+  for (const service of config.services) {
+    if (service.deploy === false) continue;
+    for (const domain of service.customDomains) {
+      customDomainMappings[domain] = service.name;
+    }
+  }
+
+  // Branch environments (non-main, sanitized)
+  const branchEnvironments = allEnvironments
+    .filter((e) => e !== "main")
+    .map(sanitizeBranchTag);
+
+  core.info(`Default service: ${defaultServiceName}`);
+  core.info(`Branch environments: ${branchEnvironments.join(", ") || "none"}`);
+  core.info(`Custom domains: ${Object.keys(customDomainMappings).join(", ") || "none"}`);
 
   const tfvars = {
     project_id: projectId,
     region,
     default_service: defaultServiceName,
-    services,
+    branch_environments: branchEnvironments,
+    custom_domain_mappings: customDomainMappings,
   };
 
   const tfvarsPath = resolve(terraformDir, "generated.auto.tfvars.json");
