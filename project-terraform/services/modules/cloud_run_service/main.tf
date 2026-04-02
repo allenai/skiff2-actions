@@ -1,5 +1,8 @@
+
 # Fetch Secret Manager secrets for this service using the service name as a prefix.
 # Filter is a substring match, so "name:my-service-" matches any secret whose name contains that string.
+#
+# TODO?: change secrets -- they are currently env-service prefixed
 data "google_secret_manager_secrets" "app_secrets" {
   for_each = toset([for key, service in var.service_containers : service.name])
 
@@ -8,7 +11,10 @@ data "google_secret_manager_secrets" "app_secrets" {
 
 resource "google_cloud_run_v2_service" "service" {
   provider = google-beta
-  name     = "${var.deployment_environment}-${var.service_name}"
+  # URL masking requires the domain segment to map to the service name
+  # prod services drop the environment prefix for cleaner naming and URL mask routing.
+  # env/branch services keep the prefix (`dev-api`) so the URL mask can resolve them.
+  name     = var.deployment_environment == "prod" ? var.service_name : "${var.deployment_environment}-${var.service_name}"
   location = var.region
 
   ingress              = "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER"
