@@ -188,7 +188,7 @@ resource "google_compute_url_map" "default" {
 # Per-project infra only handles custom domain certs.
 #
 data "google_certificate_manager_certificate_map" "default" {
-  name    = "${local.project_name}-cert-map"
+  name    = "${local.project_name}-wildcard-cert-map"
   project = var.project_id
 }
 
