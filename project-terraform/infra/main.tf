@@ -51,6 +51,14 @@ locals {
 
   # Base domains for this project (e.g., "myapp.allen.ai")
   base_domains = { for key, domain in local.domain_families : key => "${local.project_name}.${domain}" }
+
+  # All backend NEG IDs, keyed by backend name
+  all_backends = merge(
+    { for key, neg in google_compute_region_network_endpoint_group.url_mask : "url-mask-${key}" => neg.id },
+    { "default" = google_compute_region_network_endpoint_group.default_service.id },
+    { for key, neg in google_compute_region_network_endpoint_group.branch_default : "branch-${key}" => neg.id },
+    { for key, neg in google_compute_region_network_endpoint_group.custom_domain : "custom-${replace(key, ".", "-")}" => neg.id },
+  )
 }
 
 data "google_compute_global_address" "lb_ip" {
@@ -233,9 +241,8 @@ module "lb-http" {
   create_url_map = false
   url_map        = google_compute_url_map.default.self_link
 
-  backends = merge(
-    # URL mask backends — one per domain family
-    { for key, neg in google_compute_region_network_endpoint_group.url_mask : "url-mask-${key}" => {
+  backends = {
+    for key, neg_id in local.all_backends : key => {
       protocol        = "HTTPS"
       enable_cdn      = false
       security_policy = data.google_compute_security_policy.cloud_armor.self_link
@@ -245,65 +252,11 @@ module "lb-http" {
         sample_rate = 1.0
       }
 
-      groups = [{ group = neg.id }]
+      groups = [{ group = neg_id }]
 
       iap_config = {
         enable = false
       }
-    } },
-
-    # Prod default backend
-    { "default" = {
-      protocol        = "HTTPS"
-      enable_cdn      = false
-      security_policy = data.google_compute_security_policy.cloud_armor.self_link
-
-      log_config = {
-        enable      = true
-        sample_rate = 1.0
-      }
-
-      groups = [{ group = google_compute_region_network_endpoint_group.default_service.id }]
-
-      iap_config = {
-        enable = false
-      }
-    } },
-
-    # Branch default backends
-    { for key, neg in google_compute_region_network_endpoint_group.branch_default : "branch-${key}" => {
-      protocol        = "HTTPS"
-      enable_cdn      = false
-      security_policy = data.google_compute_security_policy.cloud_armor.self_link
-
-      log_config = {
-        enable      = true
-        sample_rate = 1.0
-      }
-
-      groups = [{ group = neg.id }]
-
-      iap_config = {
-        enable = false
-      }
-    } },
-
-    # Custom domain backends
-    { for key, neg in google_compute_region_network_endpoint_group.custom_domain : "custom-${replace(key, ".", "-")}" => {
-      protocol        = "HTTPS"
-      enable_cdn      = false
-      security_policy = data.google_compute_security_policy.cloud_armor.self_link
-
-      log_config = {
-        enable      = true
-        sample_rate = 1.0
-      }
-
-      groups = [{ group = neg.id }]
-
-      iap_config = {
-        enable = false
-      }
-    } },
-  )
+    }
+  }
 }
