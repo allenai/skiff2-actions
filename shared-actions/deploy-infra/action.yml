@@ -61,10 +61,30 @@ runs:
       shell: bash
       working-directory: ${{ github.action_path }}/../../project-terraform/infra
       run: |
+        echo "Checking for old per-service NEGs"
+        terraform state list 2>&1 | head -50 || true
         if terraform state list 2>/dev/null | grep -q 'google_compute_region_network_endpoint_group.default\['; then
-          echo "Migrating from per-service NEGs to URL mask architecture..."
-          echo "Updating URL map and LB first to release old backend references..."
+          echo "Migrating from per-service NEGs to URL mask architecture"
+
+          echo "Removing old cert map from state"
+          terraform state rm 'google_certificate_manager_certificate_map.default' || true
+
+          echo "Removing old cert map entries"
+          terraform state list 2>/dev/null | grep 'google_certificate_manager_certificate_map_entry.default' | while read -r resource; do
+            terraform state rm "$resource" || true
+          done
+
+          echo "Removing old per-domain certs"
+          terraform state list 2>/dev/null | grep 'google_certificate_manager_certificate.default' | while read -r resource; do
+            terraform state rm "$resource" || true
+          done
+
+          echo "Update URL map and LB"
           terraform apply -target=google_compute_url_map.default -target=module.lb-http -input=false -auto-approve
+
+          echo "Complete"
+        else
+          echo "No migration required"
         fi
 
     - name: Terraform ${{ inputs.command == 'apply' && 'Apply' || 'Plan' }}
