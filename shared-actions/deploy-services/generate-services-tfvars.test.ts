@@ -108,6 +108,7 @@ test("generateServicesTFVars maps correctly", async () => {
   stubGithubActionInput("region", "fake-region");
   stubGithubActionInput("repo_name", "skiff-commodore-fake");
   stubGithubActionInput("services", "generate-service-test");
+  stubGithubActionInput("commit_sha", "abc123def456");
 
   fs.writeFileSync("/fake-config-file.json", JSON.stringify(fakeConfig));
 
