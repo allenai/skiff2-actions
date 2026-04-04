@@ -86,7 +86,7 @@ resource "google_compute_region_network_endpoint_group" "url_mask" {
 
 # Explicit NEG for prod default service (bare domain routing)
 resource "google_compute_region_network_endpoint_group" "default_service" {
-  name                  = "${local.project_name}-default-neg"
+  name                  = "${local.project_name}-default-${var.default_service}-neg"
   network_endpoint_type = "SERVERLESS"
   region                = var.region
   project               = var.project_id
@@ -98,7 +98,7 @@ resource "google_compute_region_network_endpoint_group" "default_service" {
 # Explicit NEGs for branch default services (branch bare domain routing)
 resource "google_compute_region_network_endpoint_group" "branch_default" {
   for_each              = toset(var.branch_environments)
-  name                  = "${local.project_name}-${each.value}-default-neg"
+  name                  = "${local.project_name}-${each.value}-default-${var.default_service}-neg"
   network_endpoint_type = "SERVERLESS"
   region                = var.region
   project               = var.project_id
