@@ -40,7 +40,7 @@ export async function generateServicesTFVars() {
   const targetBranch = environmentInput || "main";
   const isMainBranch = targetBranch === "main";
   const deploymentEnv = isMainBranch ? "prod" : sanitizeBranchTag(targetBranch);
-  const imageTag = core.getInput("deploy_tag", { required: true });
+  const imageTag = core.getInput("commit_sha", { required: true });
 
   core.info(`Building services map for environment "${targetBranch}"`);
 
