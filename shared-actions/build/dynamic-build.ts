@@ -405,14 +405,6 @@ export async function main() {
     const rawConfig = JSON.parse(configContent);
     const config = BuildConfigSchema.parse(rawConfig);
 
-    const environments = config.environments ?? ["main"];
-    if (shouldPush && !environments.includes(branchName)) {
-      core.info(
-        `Branch "${branchName}" is not in the configured environments [${environments.join(", ")}]. Skipping build.`,
-      );
-      return;
-    }
-
     const context: BuildContext = {
       registry,
       projectId,
