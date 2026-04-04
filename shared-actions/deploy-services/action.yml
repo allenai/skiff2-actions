@@ -30,6 +30,10 @@ inputs:
     description: "Comma-separated list of service names to deploy (defaults to all services)"
     required: false
     default: ""
+  commit_sha:
+    description: "Commit SHA to use as image tag (defaults to github.sha)"
+    required: false
+    default: ${{ github.sha }}
 
 outputs:
   default_url:
@@ -60,6 +64,7 @@ runs:
         INPUT_REPO_NAME: ${{ inputs.repo_name }}
         INPUT_ENVIRONMENT: ${{ inputs.environment }}
         INPUT_SERVICES: ${{ inputs.services }}
+        INPUT_COMMIT_SHA: ${{ inputs.commit_sha }}
         TERRAFORM_DIR: ${{ github.action_path }}/../../project-terraform/services
       run: node ./deploy-services/index.ts
 
