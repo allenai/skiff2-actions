@@ -12,6 +12,8 @@ variable "service_containers" {
     secret_files   = map(string)
     http_version   = string
 
+    egress_port = optional(number, null)
+
     vpc = optional(object({
       network    = string
       subnetwork = string
