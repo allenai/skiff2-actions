@@ -1,7 +1,7 @@
 # Fetch Secret Manager secrets for this service using the service name as a prefix.
 # Filter is a substring match, so "name:my-service-" matches any secret whose name contains that string.
 data "google_secret_manager_secrets" "app_secrets" {
-  filter = "name:${var.deployment_environment}-${var.service.name}-"
+  filter = "name:${var.deployment_environment}-${var.service_name}-"
 }
 
 resource "google_cloud_run_v2_service" "service" {
@@ -13,103 +13,56 @@ resource "google_cloud_run_v2_service" "service" {
   launch_stage         = "BETA" # we are using the IAP on cloud run which is in beta atm.
   iap_enabled          = true
   invoker_iam_disabled = true
-  deletion_protection  = !var.service.allow_delete
+  deletion_protection  = !var.allow_delete
 
   template {
     scaling {
-      min_instance_count = var.service.machine.min_instances
-      max_instance_count = var.service.machine.max_instances
+      min_instance_count = var.min_instances
+      max_instance_count = var.max_instances
     }
 
-    containers {
-      image = "gcr.io/${var.project_id}/${var.service.container_name}:${var.image_tag}"
-
-      ports {
-        name           = var.service.http_version
-        container_port = 8080
-      }
-
-      resources {
-        limits = {
-          cpu    = var.service.machine.cpu
-          memory = var.service.machine.memory
-        }
-        cpu_idle = var.service.machine.cpu_idle
-      }
-
-      # Startup probe to handle application startup
-      startup_probe {
-        initial_delay_seconds = var.service.startup.initial_delay_seconds
-        timeout_seconds       = var.service.startup.timeout_seconds
-        period_seconds        = var.service.startup.period_seconds
-        failure_threshold     = var.service.startup.failure_threshold
-
-        http_get {
-          path = var.service.startup.path
-          port = var.service.startup.port
-        }
-      }
-
-      # Liveness probe - using HTTP GET on the root health check endpoint
-      liveness_probe {
-        initial_delay_seconds = var.service.liveness.initial_delay_seconds
-        timeout_seconds       = var.service.liveness.timeout_seconds
-        period_seconds        = var.service.liveness.period_seconds
-        failure_threshold     = var.service.liveness.failure_threshold
-
-        http_get {
-          path = var.service.liveness.path
-          port = var.service.liveness.port
-        }
-      }
-
-      env {
-        name  = "SKIFF_ENV"
-        value = var.deployment_environment
-      }
-
-      # Dynamically inject secrets from Secret Manager.
-      # Secrets must be named "<ENV_VAR>-<service-name>".
-      # The prefix and hyphens are stripped/converted to produce the env var name.
-      dynamic "env" {
-        for_each = data.google_secret_manager_secrets.app_secrets.secrets
-
-        content {
-          name = trimprefix(env.value.secret_id, "${var.deployment_environment}-${var.service.name}-")
-
-          value_source {
-            secret_key_ref {
-              secret  = env.value.secret_id
-              version = "latest"
-            }
-          }
-        }
-      }
-
-      # Mount secret files as volumes
-      dynamic "volume_mounts" {
-        for_each = var.service.secret_files
-
-        content {
-          name       = lower(replace(volume_mounts.key, "_", "-"))
-          mount_path = dirname(volume_mounts.value)
-        }
-      }
-    }
-
-    # Secondary container (optional)
     dynamic "containers" {
-      for_each = var.service.secondary_container_name != null ? [var.service.secondary_container_name] : []
+      for_each = var.service_containers
       content {
-        name  = containers.value
-        image = "gcr.io/${var.project_id}/${containers.value}:${var.image_tag}"
+        image = "gcr.io/${var.project_id}/${containers.key}:${var.image_tag}"
+
+        ports {
+          name           = var.service.http_version
+          container_port = 8080
+        }
 
         resources {
           limits = {
-            cpu    = var.service.machine.cpu
-            memory = var.service.machine.memory
+            cpu    = containers.value.machine.cpu
+            memory = containers.value.machine.memory
           }
-          cpu_idle = var.service.machine.cpu_idle
+          cpu_idle = containers.value.machine.cpu_idle
+        }
+
+        # Startup probe to handle application startup
+        startup_probe {
+          initial_delay_seconds = containers.value.startup.initial_delay_seconds
+          timeout_seconds       = containers.value.startup.timeout_seconds
+          period_seconds        = containers.value.startup.period_seconds
+          failure_threshold     = containers.value.startup.failure_threshold
+
+          http_get {
+            path = containers.value.startup.path
+            port = containers.value.startup.port
+          }
+        }
+
+        # Liveness probe - using HTTP GET on the root health check endpoint
+        liveness_probe {
+          initial_delay_seconds = containers.value.liveness.initial_delay_seconds
+          timeout_seconds       = containers.value.liveness.timeout_seconds
+          period_seconds        = containers.value.liveness.period_seconds
+          failure_threshold     = containers.value.liveness.failure_threshold
+
+          http_get {
+            path = containers.value.liveness.path
+            port = containers.value.liveness.port
+          }
         }
 
         env {
@@ -117,11 +70,14 @@ resource "google_cloud_run_v2_service" "service" {
           value = var.deployment_environment
         }
 
+        # Dynamically inject secrets from Secret Manager.
+        # Secrets must be named "<ENV_VAR>-<service-name>".
+        # The prefix and hyphens are stripped/converted to produce the env var name.
         dynamic "env" {
           for_each = data.google_secret_manager_secrets.app_secrets.secrets
 
           content {
-            name = trimprefix(env.value.secret_id, "${var.deployment_environment}-${var.service.name}-")
+            name = trimprefix(env.value.secret_id, "${var.deployment_environment}-${containers.value.name}-")
 
             value_source {
               secret_key_ref {
@@ -132,8 +88,9 @@ resource "google_cloud_run_v2_service" "service" {
           }
         }
 
+        # Mount secret files as volumes
         dynamic "volume_mounts" {
-          for_each = var.service.secret_files
+          for_each = containers.value.secret_files
 
           content {
             name       = lower(replace(volume_mounts.key, "_", "-"))
@@ -145,13 +102,13 @@ resource "google_cloud_run_v2_service" "service" {
 
     # Secret file volumes
     dynamic "volumes" {
-      for_each = var.service.secret_files
+      for_each = flatten([for key, value in var.service_containers : value.secret_files if value.secret_files != null && length(value.secret_files) > 0])
 
       content {
         name = lower(replace(volumes.key, "_", "-"))
 
         secret {
-          secret = "${var.deployment_environment}-${var.service.name}-${replace(volumes.key, "_", "-")}"
+          secret = "${var.deployment_environment}-${var.service_name}-${replace(volumes.key, "_", "-")}"
 
           items {
             version = "latest"
@@ -162,7 +119,7 @@ resource "google_cloud_run_v2_service" "service" {
     }
 
     dynamic "vpc_access" {
-      for_each = var.service.vpc != null ? [var.service.vpc] : []
+      for_each = [for key, value in var.service_containers : value.vpc if value.vpc != null]
       content {
         network_interfaces {
           network    = vpc_access.value.network
@@ -171,6 +128,7 @@ resource "google_cloud_run_v2_service" "service" {
         egress = vpc_access.value.egress
       }
     }
+
 
     timeout                          = "300s"
     max_instance_request_concurrency = 80
@@ -195,7 +153,7 @@ data "google_iam_policy" "admin" {
   binding {
     role = "roles/iap.httpsResourceAccessor"
     members = [
-      var.service.allow_unauthenticated ? "allUsers" : "domain:allenai.org"
+      var.allow_unauthenticated ? "allUsers" : "domain:allenai.org"
     ]
   }
 }
