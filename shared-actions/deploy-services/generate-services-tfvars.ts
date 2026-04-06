@@ -40,6 +40,7 @@ interface ServiceEntry {
     subnetwork: string;
     egress: string;
   };
+  use_http2?: boolean;
 }
 
 export async function generateServicesTFVars() {
@@ -144,6 +145,7 @@ export async function generateServicesTFVars() {
         path: service.liveness.path,
         port: service.liveness.port,
       },
+      use_http2: service.useHttp2
     };
 
     if (service.secondaryImage) {

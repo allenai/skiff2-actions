@@ -25,6 +25,7 @@ resource "google_cloud_run_v2_service" "service" {
       image = "gcr.io/${var.project_id}/${var.service.container_name}:${var.image_tag}"
 
       ports {
+        name           = var.service.use_http2 ? "h2c" : "http1"
         container_port = 8080
       }
 

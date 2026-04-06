@@ -44,6 +44,7 @@ export const ServiceConfigSchema = z.strictObject({
     startup: ProbeConfigSchema.optional().default({}),
     liveness: ProbeConfigSchema.optional().default({}),
     vpc: VpcSchema.optional(),
+    useHttp2: z.boolean().optional(),
   });
 
 export const BuildConfigSchema = z.strictObject({
