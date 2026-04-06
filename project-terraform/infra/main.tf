@@ -132,8 +132,7 @@ resource "google_compute_url_map" "default" {
   project = var.project_id
 
   # Unmatched hosts fall through to the `primary_domain_key` URL mask backend
-  # which set to pandajungle, as it _should_ always exist.
-  default_service = module.lb-http.backend_services["url-mask-${local.primary_domain_key}"].self_link
+  default_service = "projects/${var.project_id}/global/backendServices/default-lb-backend-url-mask-${local.primary_domain_key}"
 
   # Route each domain family's wildcard to its URL mask backend
   dynamic "host_rule" {
@@ -148,7 +147,7 @@ resource "google_compute_url_map" "default" {
     for_each = local.domain_families
     content {
       name            = "url-mask-${path_matcher.key}"
-      default_service = module.lb-http.backend_services["url-mask-${path_matcher.key}"].self_link
+      default_service = "projects/${var.project_id}/global/backendServices/default-lb-backend-url-mask-${path_matcher.key}"
     }
   }
 
@@ -160,7 +159,7 @@ resource "google_compute_url_map" "default" {
 
   path_matcher {
     name            = "bare-domain"
-    default_service = module.lb-http.backend_services["default"].self_link
+    default_service = "projects/${var.project_id}/global/backendServices/default-lb-backend-default"
   }
 
   # Branch bare domains -> branch default service
@@ -176,7 +175,7 @@ resource "google_compute_url_map" "default" {
     for_each = toset(var.branch_environments)
     content {
       name            = "branch-${path_matcher.value}"
-      default_service = module.lb-http.backend_services["branch-${path_matcher.value}"].self_link
+      default_service = "projects/${var.project_id}/global/backendServices/default-lb-backend-branch-${path_matcher.value}"
     }
   }
 
@@ -193,7 +192,7 @@ resource "google_compute_url_map" "default" {
     for_each = var.custom_domain_mappings
     content {
       name            = "custom-${replace(path_matcher.key, ".", "-")}"
-      default_service = module.lb-http.backend_services["custom-${replace(path_matcher.key, ".", "-")}"].self_link
+      default_service = "projects/${var.project_id}/global/backendServices/default-lb-backend-custom-${replace(path_matcher.key, ".", "-")}"
     }
   }
 }
