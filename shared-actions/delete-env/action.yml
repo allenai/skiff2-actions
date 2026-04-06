@@ -1,0 +1,69 @@
+name: Skiff2 Cleanup Branch
+description: Destroys Cloud Run services and Terraform workspace for a deleted branch environment
+author: Skiff
+
+inputs:
+  project_id:
+    description: "GCP project ID"
+    required: true
+  branch:
+    description: "Branch name to clean up (defaults to github.event.ref for delete events)"
+    required: false
+    default: ${{ github.event.ref }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Node.js
+      uses: actions/setup-node@v6
+      with:
+        node-version: 24
+
+    - name: Install action dependencies
+      shell: bash
+      working-directory: ${{ github.action_path }}/../
+      run: npm ci
+
+    - name: Resolve workspace name
+      id: workspace
+      shell: bash
+      working-directory: ${{ github.action_path }}/../
+      env:
+        INPUT_BRANCH: ${{ inputs.branch }}
+      run: node ./delete-env/resolve-branch.ts
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+
+    - name: Terraform Init
+      shell: bash
+      working-directory: ${{ github.action_path }}/../../project-terraform/services
+      run: terraform init -backend-config="bucket=${{ inputs.project_id }}-tf-state"
+
+    - name: Destroy branch environment
+      shell: bash
+      working-directory: ${{ github.action_path }}/../../project-terraform/services
+      env:
+        WORKSPACE: ${{ steps.workspace.outputs.workspace }}
+      run: |
+        if ! terraform workspace list | grep -qw "$WORKSPACE"; then
+          echo "Workspace '$WORKSPACE' does not exist, nothing to clean up"
+          exit 0
+        fi
+
+        echo "Destroying environment: $WORKSPACE"
+        if (
+          terraform workspace select "$WORKSPACE" &&
+          terraform destroy -input=false -auto-approve -var='project_id=${{ inputs.project_id }}' -var='services={}' &&
+          terraform workspace select default &&
+          terraform workspace delete "$WORKSPACE"
+        ); then
+          echo "Successfully destroyed environment: $WORKSPACE"
+        else
+          echo "::warning::Failed to destroy environment: $WORKSPACE"
+          terraform workspace select default || true
+        fi
+
+branding:
+  icon: trash-2
+  color: red
