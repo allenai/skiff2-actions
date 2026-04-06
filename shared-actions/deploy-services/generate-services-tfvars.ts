@@ -1,7 +1,7 @@
 import * as core from "@actions/core";
 import { readFile, writeFile } from "fs/promises";
 import { resolve } from "path";
-import { BuildConfigSchema } from "../shared/skiff2-config.ts";
+import { BuildConfigSchema, type ServiceConfig } from "../shared/skiff2-config.ts";
 import { sanitizeBranchTag } from "../shared/utils.ts";
 
 interface ProbeConfig {
@@ -40,6 +40,12 @@ interface ServiceEntry {
   http_version?: "h2c" | "http1";
 }
 
+function computeAllowDelete(service: ServiceConfig, isLongLived: boolean): boolean {
+  return isLongLived
+        ? (service.allowDelete ?? false)        // prod/long-lived: protected unless explicitly true
+        : (service.allowDelete ?? true),        // ephemeral: deletable unless explicitly false
+}
+
 export async function generateServicesTFVars() {
   const configPath = core.getInput("config_file", { required: true });
   const projectId = core.getInput("project_id", { required: true });
@@ -61,6 +67,7 @@ export async function generateServicesTFVars() {
   const config = BuildConfigSchema.parse(rawConfig);
 
   const environmentInput = core.getInput("environment");
+  const allEnvironments = config.environments ?? ["main"];
 
   const servicesInput = core.getInput("services");
   const serviceFilter = servicesInput
@@ -88,6 +95,7 @@ export async function generateServicesTFVars() {
   // Build services for ONLY the target environment
   const targetBranch = environmentInput || "main";
   const isMainBranch = targetBranch === "main";
+  const isLongLived = allEnvironments.includes(targetBranch);
   const deploymentEnv = isMainBranch ? "prod" : sanitizeBranchTag(targetBranch);
   const imageTag = core.getInput("commit_sha", { required: true });
 
@@ -107,7 +115,7 @@ export async function generateServicesTFVars() {
       name: service.name,
       container_name: `${repoName}-${service.name}`,
       allow_unauthenticated: service.allowUnauthenticated,
-      allow_delete: service.allowDelete,
+      allow_delete: computeAllowDelete(service, isLongLived),
       secret_files: service.secretFiles,
       custom_domains: isMainBranch ? service.customDomains : [],
       image_tag: imageTag,
