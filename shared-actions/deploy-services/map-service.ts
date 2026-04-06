@@ -118,12 +118,13 @@ interface MapServiceAdditionalInput {
   repoName: string;
   imageTag: string;
   isMainBranch: boolean;
+  isLongLived: boolean;
   deploymentEnv: string;
 }
 
 function mapService(
   serviceConfig: ServiceConfig,
-  { serviceMap, repoName, imageTag }: MapServiceAdditionalInput,
+  { serviceMap, repoName, imageTag, isLongLived }: MapServiceAdditionalInput,
 ): ServiceEntry | undefined {
   const sidecarContainers =
     serviceConfig.sidecars?.map((sidecar) =>
@@ -161,7 +162,9 @@ function mapService(
     containers: [...mappedServices, ...sidecarContainers],
     image_tag: imageTag,
     allow_unauthenticated: serviceConfig.allowUnauthenticated,
-    allow_delete: serviceConfig.allowDelete,
+    allow_delete: isLongLived
+      ? (serviceConfig.allowDelete ?? false)  // prod/long-lived: protected unless explicitly true
+      : (serviceConfig.allowDelete ?? true),  // ephemeral: deletable unless explicitly false
     min_instances: serviceConfig.machine.minInstances,
     max_instances: serviceConfig.machine.maxInstances,
   };

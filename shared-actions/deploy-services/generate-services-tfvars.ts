@@ -5,6 +5,7 @@ import { BuildConfigSchema } from "../shared/skiff2-config.ts";
 import { mapServices } from "./map-service.ts";
 import { sanitizeBranchTag } from "../shared/utils.ts";
 
+
 export async function generateServicesTFVars() {
   const configPath = core.getInput("config_file", { required: true });
   const projectId = core.getInput("project_id", { required: true });
@@ -26,12 +27,14 @@ export async function generateServicesTFVars() {
   const config = BuildConfigSchema.parse(rawConfig);
 
   const environmentInput = core.getInput("environment");
+  const allEnvironments = config.environments ?? ["main"];
 
   const servicesToDeploy = core.getInput("services");
 
   // Build services for ONLY the target environment
   const targetBranch = environmentInput || "main";
   const isMainBranch = targetBranch === "main";
+  const isLongLived = allEnvironments.includes(targetBranch);
   const deploymentEnv = isMainBranch ? "prod" : sanitizeBranchTag(targetBranch);
   const imageTag = core.getInput("commit_sha", { required: true });
 
@@ -42,6 +45,7 @@ export async function generateServicesTFVars() {
     repoName,
     imageTag,
     isMainBranch,
+    isLongLived,
     deploymentEnv,
   });
 
