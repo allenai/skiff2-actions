@@ -2,7 +2,7 @@ import * as core from "@actions/core";
 import { readFile, writeFile } from "fs/promises";
 import { resolve } from "path";
 import { BuildConfigSchema, type ServiceConfig } from "../shared/skiff2-config.ts";
-import { sanitizeBranchTag } from "../shared/utils.ts";
+import { sanitizeBranchTag, computeAllowDelete } from "../shared/utils.ts";
 
 interface ProbeConfig {
   initial_delay_seconds?: number;
@@ -38,12 +38,6 @@ interface ServiceEntry {
     egress: string;
   };
   http_version?: "h2c" | "http1";
-}
-
-function computeAllowDelete(service: ServiceConfig, isLongLived: boolean): boolean {
-  return isLongLived
-        ? (service.allowDelete ?? false) // prod/long-lived: default to protected, need to explicitly allowDelete=true
-        : (service.allowDelete ?? true); // adhoc/ephemeral: default to deletable, explicitly set to false for protection
 }
 
 export async function generateServicesTFVars() {
