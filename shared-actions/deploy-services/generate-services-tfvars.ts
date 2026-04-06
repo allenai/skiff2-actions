@@ -7,8 +7,8 @@ import { mapServices } from "./map-service.ts";
 
 function computeAllowDelete(service: ServiceConfig, isLongLived: boolean): boolean {
   return isLongLived
-        ? (service.allowDelete ?? false)        // prod/long-lived: protected unless explicitly true
-        : (service.allowDelete ?? true),        // ephemeral: deletable unless explicitly false
+        ? (service.allowDelete ?? false) // prod/long-lived: default to protected, need to explicitly allowDelete=true
+        : (service.allowDelete ?? true); // adhoc/ephemeral: default to deletable, explicitly set to false for protection
 }
 
 export async function generateServicesTFVars() {
