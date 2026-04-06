@@ -26,13 +26,6 @@ export async function generateServicesTFVars() {
   const config = BuildConfigSchema.parse(rawConfig);
 
   const environmentInput = core.getInput("environment");
-  const allEnvironments = config.environments ?? ["main"];
-
-  if (environmentInput && !allEnvironments.includes(environmentInput)) {
-    throw new Error(
-      `Environment "${environmentInput}" not found in config. Available: ${allEnvironments.join(", ")}`,
-    );
-  }
 
   const servicesToDeploy = core.getInput("services");
 
