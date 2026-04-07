@@ -10,7 +10,7 @@ resource "google_cloud_run_v2_service" "service" {
   location = var.region
 
   ingress              = "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER"
-  launch_stage         = "BETA" # we are using the IAP on cloud run which is in beta atm.
+  launch_stage         = "GA"
   iap_enabled          = true
   invoker_iam_disabled = true
   deletion_protection  = !var.allow_delete
@@ -28,7 +28,7 @@ resource "google_cloud_run_v2_service" "service" {
 
         ports {
           name           = var.service.http_version
-          container_port = 8080
+          container_port = containers.value.egress_port
         }
 
         resources {

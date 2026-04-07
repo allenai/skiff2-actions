@@ -1,47 +1,14 @@
 import * as core from "@actions/core";
 import { readFile, writeFile } from "fs/promises";
 import { resolve } from "path";
-import { BuildConfigSchema } from "../shared/skiff2-config.ts";
+import { BuildConfigSchema, type ServiceConfig } from "../shared/skiff2-config.ts";
+import { mapContainer, mapService, type ServiceEntry } from "./map-service.ts";
 
 function sanitizeBranchTag(branch: string): string {
   return branch.replace(/[^a-zA-Z0-9._-]/g, "-");
 }
 
-interface ProbeConfig {
-  initial_delay_seconds?: number;
-  timeout_seconds?: number;
-  period_seconds?: number;
-  failure_threshold?: number;
-  path?: string;
-  port?: number;
-}
 
-interface ServiceEntry {
-  name: string;
-  container_name: string;
-  secondary_container_name?: string;
-  allow_unauthenticated: boolean;
-  allow_delete: boolean;
-  secret_files: Record<string, string>;
-  custom_domains: string[];
-  image_tag: string;
-  deployment_environment: string;
-  machine: {
-    min_instances: number;
-    max_instances: number;
-    memory: string;
-    cpu: string;
-    cpu_idle: boolean;
-  };
-  startup: ProbeConfig;
-  liveness: ProbeConfig;
-  vpc?: {
-    network: string;
-    subnetwork: string;
-    egress: string;
-  };
-  http_version?: "h2c" | "http1";
-}
 
 export async function generateServicesTFVars() {
   const configPath = core.getInput("config_file", { required: true });
@@ -103,60 +70,29 @@ export async function generateServicesTFVars() {
 
   core.info(`Building services map for environment "${targetBranch}"`);
 
-  const services: Record<string, ServiceEntry> = {};
+  const serviceMap = config.services.reduce<Map<string, ServiceConfig>>((acc, service) => {
+    acc.set(service.name, service);
+    return acc;
+  }, new Map());
 
-  for (const service of config.services) {
-    if (service.deploy === false) continue;
-    if (serviceFilter && !serviceFilter.includes(service.name)) continue;
+  const services = Object.values(config.services).reduce((acc, serviceConfig) => {
+    const mappedService = mapService(serviceConfig, repoName, serviceMap, imageTag);
+    const isServiceIncluded = serviceFilter && !serviceFilter.includes(serviceConfig.name);
+
+    if (!serviceConfig.deploy || !isServiceIncluded) {
+      return acc;
+    }
 
     const serviceKey = isMainBranch
-      ? service.name
-      : `${deploymentEnv}-${service.name}`;
+      ? serviceConfig.name
+      : `${deploymentEnv}-${serviceConfig.name}`;
 
-    services[serviceKey] = {
-      name: service.name,
-      container_name: `${repoName}-${service.name}`,
-      allow_unauthenticated: service.allowUnauthenticated,
-      allow_delete: service.allowDelete,
-      secret_files: service.secretFiles,
-      custom_domains: isMainBranch ? service.customDomains : [],
-      image_tag: imageTag,
-      deployment_environment: deploymentEnv,
-      machine: {
-        min_instances: service.machine.minInstances,
-        max_instances: service.machine.maxInstances,
-        memory: service.machine.memory,
-        cpu: String(service.machine.cpu),
-        cpu_idle: service.machine.cpuIdle,
-      },
-      startup: {
-        initial_delay_seconds: service.startup.initialDelaySeconds,
-        timeout_seconds: service.startup.timeoutSeconds,
-        period_seconds: service.startup.periodSeconds,
-        failure_threshold: service.startup.failureThreshold,
-        path: service.startup.path,
-        port: service.startup.port,
-      },
-      liveness: {
-        initial_delay_seconds: service.liveness.initialDelaySeconds,
-        timeout_seconds: service.liveness.timeoutSeconds,
-        period_seconds: service.liveness.periodSeconds,
-        failure_threshold: service.liveness.failureThreshold,
-        path: service.liveness.path,
-        port: service.liveness.port,
-      },
-      http_version: service.httpVersion === "2" ? "h2c" : "http1",
-    };
-
-    if (service.secondaryImage) {
-      services[serviceKey].secondary_container_name =
-        `${repoName}-${service.secondaryImage}`;
+    if (mappedService) {
+      acc[serviceKey] = mappedService;
     }
-
-    if (service.vpc) {
-      services[serviceKey].vpc = service.vpc;
-    }
-  }
+    
+    return acc;
+  }, {} as Record<string, ServiceEntry>)
 
   if (Object.keys(services).length === 0) {
     throw new Error("No deployable services found in config");
@@ -168,6 +104,8 @@ export async function generateServicesTFVars() {
     project_id: projectId,
     region,
     services,
+    deployment_environment: deploymentEnv,
+    image_tag: imageTag,
   };
 
   const tfvarsPath = resolve(terraformDir, "generated.auto.tfvars.json");

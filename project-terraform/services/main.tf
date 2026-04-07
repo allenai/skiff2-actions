@@ -47,8 +47,4 @@ module "cloud_run_service" {
   region                 = var.region
   deployment_environment = each.value.deployment_environment
   image_tag              = each.value.image_tag
-  allow_unauthenticated  = each.value.allow_unauthenticated
-  allow_delete           = each.value.allow_delete
-  min_instances          = each.value.min_instances
-  max_instances          = each.value.max_instances
 }
