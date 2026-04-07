@@ -58,7 +58,7 @@ test("generateServicesTFVars maps correctly", async () => {
   stubGithubActionInput("project_id", "fake-skiff-project");
   stubGithubActionInput("region", "fake-region");
   stubGithubActionInput("repo_name", "skiff-commodore-fake");
-  stubGithubActionInput("commit_sha", "abc123def456");
+  stubGithubActionInput("deploy_tag", "custom_deploy_tag");
 
   fs.writeFileSync("/fake-config-file.json", JSON.stringify(fakeConfig));
 
@@ -84,7 +84,7 @@ test("generateServicesTFVars maps correctly", async () => {
         allow_delete: true,
         secret_files: {},
         custom_domains: [],
-        image_tag: "abc123def456",
+        image_tag: "custom_deploy_tag",
         deployment_environment: "prod",
         http_version: "h2c",
         machine: {
