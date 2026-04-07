@@ -5,14 +5,15 @@ variable "service_name" {
 
 variable "service_containers" {
   description = "Service configuration objects, including sidecars"
-  # If you make a change to this type remember to change secondary_service_map as well!
   type = map(object({
     name           = string
     container_name = string
     secret_files   = map(string)
-    http_version   = string
 
-    egress_port = optional(number, null)
+    ports = list(object({
+      name = string
+      port = number
+    }))
 
     vpc = optional(object({
       network    = string

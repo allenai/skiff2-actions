@@ -9,12 +9,17 @@ interface ProbeConfig {
   port?: number;
 }
 
+interface PortConfig {
+  name: "h2c" | "http1";
+  port: number;
+}
+
 interface Container {
   name: string;
   container_name: string;
   secret_files: Record<string, string>;
 
-  egress_port?: number;
+  ports: PortConfig[];
 
   vpc?: {
     network: string;
@@ -30,8 +35,6 @@ interface Container {
 
   startup: ProbeConfig;
   liveness: ProbeConfig;
-
-  http_version?: "h2c" | "http1";
 }
 
 function mapContainer(
@@ -42,7 +45,14 @@ function mapContainer(
     name: serviceConfig.name,
     container_name: `${repoName}-${serviceConfig.name}`,
     secret_files: serviceConfig.secretFiles,
-    http_version: serviceConfig.httpVersion === "2" ? "h2c" : "http1",
+    ports: serviceConfig.deploy
+      ? [
+          {
+            name: serviceConfig.httpVersion === "2" ? "h2c" : "http1",
+            port: 8080,
+          },
+        ]
+      : [],
     machine: {
       memory: serviceConfig.machine.memory,
       cpu: String(serviceConfig.machine.cpu),
@@ -110,14 +120,19 @@ function mapService(
       }
     }) ?? [];
 
-  const secondaryImageContainer = serviceConfig.secondaryImage ? serviceMap.get(serviceConfig.secondaryImage) : null;
+  const secondaryImageContainer = serviceConfig.secondaryImage
+    ? serviceMap.get(serviceConfig.secondaryImage)
+    : null;
   if (serviceConfig.secondaryImage && secondaryImageContainer == null) {
     throw new Error(
       `Service config for secondary image not found. Service: ${serviceConfig.name}, Missing service: ${serviceConfig.secondaryImage})}`,
     );
   }
 
-  const sidecarServices = [...additionalContainers, ...(secondaryImageContainer ? [secondaryImageContainer] : [])]
+  const sidecarServices = [
+    ...additionalContainers,
+    ...(secondaryImageContainer ? [secondaryImageContainer] : []),
+  ];
 
   const allConfigsForService = [serviceConfig, ...sidecarServices];
   const containers = allConfigsForService.reduce(

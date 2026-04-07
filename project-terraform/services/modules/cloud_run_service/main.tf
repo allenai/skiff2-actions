@@ -26,9 +26,13 @@ resource "google_cloud_run_v2_service" "service" {
       content {
         image = "gcr.io/${var.project_id}/${containers.key}:${var.image_tag}"
 
-        ports {
-          name           = containers.value.egress_port != null ? containers.value.http_version : null
-          container_port = containers.value.egress_port
+        dynamic "ports" {
+          for_each = containers.value.ports
+          content {
+
+            name           = ports.value.name
+            container_port = ports.value.port
+          }
         }
 
         resources {
