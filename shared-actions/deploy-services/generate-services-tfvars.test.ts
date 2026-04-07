@@ -108,7 +108,7 @@ test("generateServicesTFVars maps correctly", async () => {
   stubGithubActionInput("region", "fake-region");
   stubGithubActionInput("repo_name", "skiff-commodore-fake");
   stubGithubActionInput("services", "generate-service-test");
-  stubGithubActionInput("commit_sha", "abc123def456");
+  stubGithubActionInput("deploy_tag", "custom_deploy_tag");
 
   fs.writeFileSync("/fake-config-file.json", JSON.stringify(fakeConfig));
 
@@ -125,7 +125,7 @@ test("generateServicesTFVars maps correctly", async () => {
 
   expect(parsedFileContents).toEqual({
     deployment_environment: "prod",
-    image_tag: "main",
+    image_tag: "custom_deploy_tag",
     project_id: "fake-skiff-project",
     region: "fake-region",
     services: {
