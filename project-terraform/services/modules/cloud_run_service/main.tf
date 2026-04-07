@@ -1,7 +1,9 @@
 # Fetch Secret Manager secrets for this service using the service name as a prefix.
 # Filter is a substring match, so "name:my-service-" matches any secret whose name contains that string.
 data "google_secret_manager_secrets" "app_secrets" {
-  filter = "name:${var.deployment_environment}-${var.service_name}-"
+  for_each = toset([for key, service in var.service_containers : service.name])
+
+  filter = "name:${var.deployment_environment}-${each.value}-"
 }
 
 resource "google_cloud_run_v2_service" "service" {
@@ -78,7 +80,7 @@ resource "google_cloud_run_v2_service" "service" {
         # Secrets must be named "<ENV_VAR>-<service-name>".
         # The prefix and hyphens are stripped/converted to produce the env var name.
         dynamic "env" {
-          for_each = data.google_secret_manager_secrets.app_secrets.secrets
+          for_each = data.google_secret_manager_secrets.app_secrets[containers.value.name].secrets
 
           content {
             name = trimprefix(env.value.secret_id, "${var.deployment_environment}-${containers.value.name}-")
