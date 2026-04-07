@@ -53,10 +53,12 @@ const fakeConfig = {
     {
       name: "generate-service-test-sidecar",
       cwd: "./sidecar",
+      deploy: false,
       dockerFile: "sidecar.Dockerfile",
       isRootService: false,
       allowUnauthenticated: false,
       allowDelete: false,
+      httpVersion: "1",
       secretFiles: {},
       customDomains: [],
       machine: {
@@ -86,7 +88,9 @@ const fakeConfig = {
     {
       name: "filteredService",
       cwd: "filtered",
+      deploy: true,
       dockerFile: "filtered.Dockerfile",
+      httpVersion: "2",
       isRootService: false,
       allowUnauthenticated: false,
       allowDelete: false,
@@ -110,7 +114,7 @@ test("generateServicesTFVars maps correctly", async () => {
   stubGithubActionInput("project_id", "fake-skiff-project");
   stubGithubActionInput("region", "fake-region");
   stubGithubActionInput("repo_name", "skiff-commodore-fake");
-  // stubGithubActionInput("services", "generate-service-test")
+  stubGithubActionInput("services", "generate-service-test");
 
   fs.writeFileSync("/fake-config-file.json", JSON.stringify(fakeConfig));
 
@@ -137,7 +141,6 @@ test("generateServicesTFVars maps correctly", async () => {
         containers: {
           "generate-service-test": {
             container_name: "skiff-commodore-fake-generate-service-test",
-            http_version: "h2c",
             liveness: {
               initial_delay_seconds: 10,
               path: "liveness",
@@ -151,6 +154,12 @@ test("generateServicesTFVars maps correctly", async () => {
               memory: "2Gi",
             },
             name: "generate-service-test",
+            ports: [
+              {
+                name: "h2c",
+                port: 8080,
+              },
+            ],
             secret_files: {},
             startup: {
               failure_threshold: 20,
@@ -178,6 +187,7 @@ test("generateServicesTFVars maps correctly", async () => {
               memory: "512Mi",
             },
             name: "generate-service-test-sidecar",
+            ports: [],
             secret_files: {},
             startup: {
               failure_threshold: 4,

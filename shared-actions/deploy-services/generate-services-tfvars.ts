@@ -47,7 +47,13 @@ export async function generateServicesTFVars() {
 
   core.info(`Building services map for environment "${targetBranch}"`);
 
-  const services = mapServices(config.services, { servicesToDeploy, repoName, imageTag, isMainBranch, deploymentEnv})
+  const services = mapServices(config.services, {
+    servicesToDeploy,
+    repoName,
+    imageTag,
+    isMainBranch,
+    deploymentEnv,
+  });
 
   if (Object.keys(services).length === 0) {
     throw new Error("No deployable services found in config");

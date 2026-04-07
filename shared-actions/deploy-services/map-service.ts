@@ -135,7 +135,7 @@ function mapService(
   ];
 
   const allConfigsForService = [serviceConfig, ...sidecarServices];
-  const containers = allConfigsForService.reduce(
+  const containers = allConfigsForService.reduce<Record<string, Container>>(
     (acc, service) => {
       const mappedContainer = mapContainer(service, repoName);
 
@@ -145,7 +145,7 @@ function mapService(
 
       return acc;
     },
-    {} as Record<string, Container>,
+    {},
   );
 
   const service: ServiceEntry = {
@@ -199,7 +199,10 @@ export function mapServices(
   const mappedServices = Object.values(services).reduce<
     Record<string, ServiceEntry>
   >((acc, serviceConfig) => {
-    if (serviceFilter && serviceFilter.includes(serviceConfig.name)) {
+    if (
+      serviceFilter?.length > 0 &&
+      !serviceFilter.includes(serviceConfig.name)
+    ) {
       return acc;
     }
 
