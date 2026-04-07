@@ -1,5 +1,5 @@
-name: Skiff2 Cleanup Branch
-description: Destroys Cloud Run services and Terraform workspace for a deleted branch environment
+name: Skiff2 Delete Environment
+description: Destroys Cloud Run services and Terraform workspace for a branch environment
 author: Skiff
 
 inputs:
@@ -10,6 +10,14 @@ inputs:
     description: "Path to skiff2.json config file"
     required: false
     default: "skiff2.json"
+  region:
+    description: "GCP region"
+    required: false
+    default: "us-west1"
+  repo_name:
+    description: "Repository name (defaults to github.event.repository.name)"
+    required: false
+    default: ${{ github.event.repository.name }}
   branch:
     description: "Branch name to clean up"
     required: false
@@ -60,28 +68,43 @@ runs:
       working-directory: ${{ github.action_path }}/../../project-terraform/services
       run: terraform init -backend-config="bucket=${{ inputs.project_id }}-tf-state"
 
-    - name: Destroy branch environment
+    - name: Delete environment
       shell: bash
-      working-directory: ${{ github.action_path }}/../../project-terraform/services
+      working-directory: ${{ github.action_path }}/../
       env:
         WORKSPACE: ${{ steps.workspace.outputs.workspace }}
+        INPUT_CONFIG_FILE: ${{ inputs.config_file }}
+        INPUT_PROJECT_ID: ${{ inputs.project_id }}
+        INPUT_REGION: ${{ inputs.region }}
+        INPUT_REPO_NAME: ${{ inputs.repo_name }}
+        INPUT_ENVIRONMENT: ${{ inputs.branch }}
+        INPUT_DEPLOY_TAG: placeholder
+        TERRAFORM_DIR: ${{ github.action_path }}/../../project-terraform/services
       run: |
-        if ! terraform workspace list | grep -qw "$WORKSPACE"; then
+        if ! terraform -chdir="$TERRAFORM_DIR" workspace list | grep -qw "$WORKSPACE"; then
           echo "Workspace '$WORKSPACE' does not exist, nothing to clean up"
           exit 0
         fi
 
-        echo "Destroying environment: $WORKSPACE"
+        echo "Deleting environment: $WORKSPACE"
+
+        # Generate tfvars and apply to ensure deletion_protection is disabled.
+        # This handles the case where a long-lived env (with "auto" deletion_protection)
+        # was removed from environments and is now being cleaned up.
+        node ./deploy-services/index.ts
+        terraform -chdir="$TERRAFORM_DIR" workspace select "$WORKSPACE"
+        terraform -chdir="$TERRAFORM_DIR" apply -input=false -auto-approve
+
+        # Now destroy
         if (
-          terraform workspace select "$WORKSPACE" &&
-          terraform destroy -input=false -auto-approve -var='project_id=${{ inputs.project_id }}' -var='services={}' &&
-          terraform workspace select default &&
-          terraform workspace delete "$WORKSPACE"
+          terraform -chdir="$TERRAFORM_DIR" destroy -input=false -auto-approve &&
+          terraform -chdir="$TERRAFORM_DIR" workspace select default &&
+          terraform -chdir="$TERRAFORM_DIR" workspace delete "$WORKSPACE"
         ); then
-          echo "Successfully destroyed environment: $WORKSPACE"
+          echo "Successfully deleted environment: $WORKSPACE"
         else
-          echo "::warning::Failed to destroy environment: $WORKSPACE"
-          terraform workspace select default || true
+          echo "::warning::Failed to delete environment: $WORKSPACE"
+          terraform -chdir="$TERRAFORM_DIR" workspace select default || true
         fi
 
 branding:
