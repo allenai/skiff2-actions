@@ -175,11 +175,6 @@ export function mapServices(
   const mappedServices = Object.values(services).reduce<
     Record<string, ServiceEntry>
   >((acc, serviceConfig) => {
-    const mappedService = mapService(serviceConfig, {
-      serviceMap,
-      ...additionalInput,
-    });
-
     if (serviceFilter && serviceFilter.includes(serviceConfig.name)) {
       return acc;
     }
@@ -187,6 +182,11 @@ export function mapServices(
     if (!serviceConfig.deploy) {
       return acc;
     }
+
+    const mappedService = mapService(serviceConfig, {
+      serviceMap,
+      ...additionalInput,
+    });
 
     const serviceKey = additionalInput.isMainBranch
       ? serviceConfig.name

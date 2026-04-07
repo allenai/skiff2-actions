@@ -32,7 +32,7 @@ export const ServiceConfigSchema = z.strictObject({
   isRootService: z.boolean().optional(),
   dockerFile: z.string().optional(),
   dependsOn: z.array(z.string()).optional(),
-  deploy: z.boolean().optional(),
+  deploy: z.boolean().optional().default(true),
   secondaryImage: z.string().optional(),
   additionalContainers: z.array(z.string()).optional(),
   extraBuildArgs: z.array(z.string()).optional(),
