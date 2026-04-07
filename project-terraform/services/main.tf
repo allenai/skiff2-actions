@@ -45,6 +45,10 @@ module "cloud_run_service" {
   project_id             = var.project_id
   project_number         = data.google_project.project.number
   region                 = var.region
-  deployment_environment = each.value.deployment_environment
-  image_tag              = each.value.image_tag
+  deployment_environment = var.deployment_environment
+  image_tag              = var.image_tag
+  min_instances          = each.value.min_instances
+  max_instances          = each.value.max_instances
+  allow_delete           = each.value.allow_delete
+  allow_unauthenticated  = each.value.allow_unauthenticated
 }

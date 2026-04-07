@@ -51,8 +51,18 @@ variable "services" {
       }), {})
     }))
 
-    custom_domains         = list(string)
-    image_tag              = string
-    deployment_environment = string
+    min_instances         = number
+    max_instances         = number
+    allow_delete          = bool
+    allow_unauthenticated = bool
   }))
 }
+
+variable "deployment_environment" {
+  type = string
+}
+
+variable "image_tag" {
+  type = string
+}
+
