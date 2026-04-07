@@ -8,39 +8,39 @@ jobs:
     name: Upload JSON Schema
     runs-on: ubuntu-latest
     permissions:
-      contents: 'read'
-      id-token: 'write'
+      contents: "read"
+      id-token: "write"
     defaults:
       run:
         working-directory: ./shared-actions
 
     steps:
-    - id: checkout
-      uses: 'actions/checkout@v6'
+      - id: checkout
+        uses: "actions/checkout@v6"
 
-    - name: Use Node.js
-      uses: actions/setup-node@v6
-      with:
-        node-version: '24'
+      - name: Use Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
 
-    - name: Install dependencies
-      run: npm ci
+      - name: Install dependencies
+        run: npm ci
 
-    - id: create-schema
-      name: Create JSON Schema
-      run: npm run create-json-schema
+      - id: create-schema
+        name: Create JSON Schema
+        run: npm run create-json-schema
 
-    - id: 'auth'
-      uses: 'google-github-actions/auth@v3'
-      with:
-        project_id: ${{ vars.SKIFF2_PROJECT_ID }}
-        workload_identity_provider: ${{ vars.SKIFF2_WORKLOAD_IDENTITY_PROVIDER }}
+      - id: "auth"
+        uses: "google-github-actions/auth@v3"
+        with:
+          project_id: ${{ vars.SKIFF2_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.SKIFF2_WORKLOAD_IDENTITY_PROVIDER }}
 
-    - id: 'upload-file'
-      uses: 'google-github-actions/upload-cloud-storage@v3'
-      with:
-        project_id: ai2-skiff-2 
-        path: '${{ github.workspace }}/shared-actions/skiff2-config.schema.json'
-        parent: false
-        destination: 'skiff2-general'
-        process_gcloudignore: false 
+      - id: "upload-file"
+        uses: "google-github-actions/upload-cloud-storage@v3"
+        with:
+          project_id: ai2-skiff-2
+          path: "${{ github.workspace }}/shared-actions/skiff2-config.schema.json"
+          parent: false
+          destination: "skiff2-general"
+          process_gcloudignore: false

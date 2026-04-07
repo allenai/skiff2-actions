@@ -40,7 +40,7 @@ interface ServiceEntry {
     subnetwork: string;
     egress: string;
   };
-  http_version?: 'h2c' | 'http1';
+  http_version?: "h2c" | "http1";
 }
 
 export async function generateServicesTFVars() {
@@ -145,7 +145,7 @@ export async function generateServicesTFVars() {
         path: service.liveness.path,
         port: service.liveness.port,
       },
-      http_version: service.httpVersion === '2' ? 'h2c' : 'http1'
+      http_version: service.httpVersion === "2" ? "h2c" : "http1",
     };
 
     if (service.secondaryImage) {

@@ -46,7 +46,7 @@ function createBuildState(): BuildState {
 }
 
 function getBranchTag(branchName: string): string {
-  return branchName.replace(/[^a-zA-Z0-9._-]/g, "-")
+  return branchName.replace(/[^a-zA-Z0-9._-]/g, "-");
 }
 
 function buildImageTags(
@@ -77,7 +77,7 @@ export function buildDockerArgs(
   if (context.shouldPush) {
     buildArgs.push("--push");
   }
-  
+
   const branchTag = getBranchTag(context.branchName);
 
   if (context.cacheFrom) {
@@ -85,7 +85,7 @@ export function buildDockerArgs(
       DOCKER_REGISTRY: context.registry,
       PROJECT_ID: context.projectId,
       SERVICE_NAME: serviceName,
-      BRANCH: branchTag
+      BRANCH: branchTag,
     } as const;
 
     const replacedCacheFrom = expandVariables(context.cacheFrom, replacements);
@@ -98,7 +98,7 @@ export function buildDockerArgs(
       DOCKER_REGISTRY: context.registry,
       PROJECT_ID: context.projectId,
       SERVICE_NAME: serviceName,
-      BRANCH: branchTag
+      BRANCH: branchTag,
     } as const;
 
     const replacedCacheTo = expandVariables(context.cacheTo, replacements);
