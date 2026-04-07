@@ -12,46 +12,48 @@ variable "region" {
 variable "services" {
   description = "Map of Cloud Run services to deploy (single environment only)."
   type = map(object({
-    name           = string
-    container_name = string
-    secret_files   = map(string)
+    containers = map(object({
+      name           = string
+      container_name = string
+      secret_files   = map(string)
 
-    ports = list(object({
-      name = string
-      port = number
+      ports = list(object({
+        name = string
+        port = number
+      }))
+
+      vpc = optional(object({
+        network    = string
+        subnetwork = string
+        egress     = string
+      }))
+
+      machine = object({
+        memory   = string
+        cpu      = string
+        cpu_idle = bool
+      })
+
+      startup = optional(object({
+        initial_delay_seconds = optional(number)
+        timeout_seconds       = optional(number)
+        period_seconds        = optional(number)
+        failure_threshold     = optional(number)
+
+        path = optional(string, "/")
+        port = optional(number, 8080)
+      }), {})
+
+      liveness = optional(object({
+        initial_delay_seconds = optional(number)
+        timeout_seconds       = optional(number)
+        period_seconds        = optional(number)
+        failure_threshold     = optional(number)
+
+        path = optional(string, "/")
+        port = optional(number, 8080)
+      }), {})
     }))
-
-    vpc = optional(object({
-      network    = string
-      subnetwork = string
-      egress     = string
-    }))
-
-    machine = object({
-      memory   = string
-      cpu      = string
-      cpu_idle = bool
-    })
-
-    startup = optional(object({
-      initial_delay_seconds = optional(number)
-      timeout_seconds       = optional(number)
-      period_seconds        = optional(number)
-      failure_threshold     = optional(number)
-
-      path = optional(string, "/")
-      port = optional(number, 8080)
-    }), {})
-
-    liveness = optional(object({
-      initial_delay_seconds = optional(number)
-      timeout_seconds       = optional(number)
-      period_seconds        = optional(number)
-      failure_threshold     = optional(number)
-
-      path = optional(string, "/")
-      port = optional(number, 8080)
-    }), {})
 
     min_instances         = number
     max_instances         = number
