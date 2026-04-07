@@ -26,7 +26,7 @@ const fakeConfig = {
       allowDelete: true,
       secretFiles: {},
       customDomains: [],
-      useHttp2: true,
+      httpVersion: "2",
       machine: {
         minInstances: 5,
         maxInstances: 20,
@@ -85,7 +85,7 @@ test("generateServicesTFVars maps correctly", async () => {
         custom_domains: [],
         image_tag: "main",
         deployment_environment: "prod",
-        use_http2: true,
+        http_version: "h2c",
         machine: {
           min_instances: 5,
           max_instances: 20,
