@@ -12,6 +12,7 @@ variable "service" {
     allow_unauthenticated    = bool
     allow_delete             = bool
     secret_files             = map(string)
+    http_version             = string
     vpc = optional(object({
       network    = string
       subnetwork = string

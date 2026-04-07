@@ -18,6 +18,7 @@ variable "services" {
     allow_unauthenticated    = bool
     allow_delete             = bool
     secret_files             = map(string)
+    http_version             = string
     custom_domains           = list(string)
     image_tag                = string
     deployment_environment   = string
