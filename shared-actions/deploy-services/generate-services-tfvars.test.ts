@@ -1,10 +1,8 @@
+import { fs, vol } from "memfs";
 import { beforeEach, expect, test, vi } from "vitest";
-import { generateServicesTFVars } from "./generate-services-tfvars";
+import type { BuildConfig } from "../shared/skiff2-config";
 import { stubGithubActionInput } from "../test-util/stub-github-action-input";
-import { vol, fs } from "memfs";
-import path from "path";
-import type { TempFileContext } from "../build/secrets";
-import type { BuildConfig, ServiceConfig } from "../shared/skiff2-config";
+import { generateServicesTFVars } from "./generate-services-tfvars";
 
 vi.mock("node:fs");
 vi.mock("node:fs/promises");
@@ -21,6 +19,8 @@ const fakeConfig = {
       name: "generate-service-test",
       cwd: ".",
       dockerFile: "build-test.Dockerfile",
+      additionalContainers: ["generate-service-test-sidecar"],
+      deploy: true,
       isRootService: true,
       allowUnauthenticated: true,
       allowDelete: true,
@@ -50,6 +50,58 @@ const fakeConfig = {
         port: 4000,
       },
     },
+    {
+      name: "generate-service-test-sidecar",
+      cwd: "./sidecar",
+      dockerFile: "sidecar.Dockerfile",
+      isRootService: false,
+      allowUnauthenticated: false,
+      allowDelete: false,
+      secretFiles: {},
+      customDomains: [],
+      machine: {
+        minInstances: 1,
+        maxInstances: 2,
+        memory: "512Mi",
+        cpu: 1,
+        cpuIdle: true,
+      },
+      startup: {
+        initialDelaySeconds: 1,
+        timeoutSeconds: 2,
+        periodSeconds: 3,
+        failureThreshold: 4,
+        path: "sidecar-startup",
+        port: 5,
+      },
+      liveness: {
+        initialDelaySeconds: 6,
+        timeoutSeconds: 7,
+        periodSeconds: 8,
+        failureThreshold: 9,
+        path: "sidecar-liveness",
+        port: 10,
+      },
+    },
+    {
+      name: "filteredService",
+      cwd: "filtered",
+      dockerFile: "filtered.Dockerfile",
+      isRootService: false,
+      allowUnauthenticated: false,
+      allowDelete: false,
+      secretFiles: {},
+      customDomains: [],
+      machine: {
+        minInstances: 1,
+        maxInstances: 2,
+        memory: "512Mi",
+        cpu: 1,
+        cpuIdle: true,
+      },
+      startup: {},
+      liveness: {},
+    },
   ],
 } as const satisfies BuildConfig;
 
@@ -58,6 +110,7 @@ test("generateServicesTFVars maps correctly", async () => {
   stubGithubActionInput("project_id", "fake-skiff-project");
   stubGithubActionInput("region", "fake-region");
   stubGithubActionInput("repo_name", "skiff-commodore-fake");
+  // stubGithubActionInput("services", "generate-service-test")
 
   fs.writeFileSync("/fake-config-file.json", JSON.stringify(fakeConfig));
 
@@ -73,42 +126,73 @@ test("generateServicesTFVars maps correctly", async () => {
   const parsedFileContents = JSON.parse(fileContents);
 
   expect(parsedFileContents).toEqual({
+    deployment_environment: "prod",
+    image_tag: "main",
     project_id: "fake-skiff-project",
     region: "fake-region",
     services: {
       "generate-service-test": {
-        name: "generate-service-test",
-        container_name: "skiff-commodore-fake-generate-service-test",
-        allow_unauthenticated: true,
         allow_delete: true,
-        secret_files: {},
-        custom_domains: [],
+        allow_unauthenticated: true,
+        containers: {
+          "generate-service-test": {
+            container_name: "skiff-commodore-fake-generate-service-test",
+            http_version: "h2c",
+            liveness: {
+              initial_delay_seconds: 10,
+              path: "liveness",
+              period_seconds: 30,
+              port: 4000,
+              timeout_seconds: 20,
+            },
+            machine: {
+              cpu: "5",
+              cpu_idle: false,
+              memory: "2Gi",
+            },
+            name: "generate-service-test",
+            secret_files: {},
+            startup: {
+              failure_threshold: 20,
+              initial_delay_seconds: 60,
+              path: "startup",
+              period_seconds: 30,
+              port: 3000,
+              timeout_seconds: 10,
+            },
+          },
+          "generate-service-test-sidecar": {
+            container_name:
+              "skiff-commodore-fake-generate-service-test-sidecar",
+            liveness: {
+              failure_threshold: 9,
+              initial_delay_seconds: 6,
+              path: "sidecar-liveness",
+              period_seconds: 8,
+              port: 10,
+              timeout_seconds: 7,
+            },
+            machine: {
+              cpu: "1",
+              cpu_idle: true,
+              memory: "512Mi",
+            },
+            name: "generate-service-test-sidecar",
+            secret_files: {},
+            startup: {
+              failure_threshold: 4,
+              initial_delay_seconds: 1,
+              path: "sidecar-startup",
+              period_seconds: 3,
+              port: 5,
+              timeout_seconds: 2,
+            },
+          },
+        },
         image_tag: "main",
-        deployment_environment: "prod",
-        http_version: "h2c",
-        machine: {
-          min_instances: 5,
-          max_instances: 20,
-          memory: "2Gi",
-          cpu: "5",
-          cpu_idle: false,
-        },
-        startup: {
-          initial_delay_seconds: 60,
-          timeout_seconds: 10,
-          period_seconds: 30,
-          failure_threshold: 20,
-          path: "startup",
-          port: 3000,
-        },
-        liveness: {
-          initial_delay_seconds: 10,
-          timeout_seconds: 20,
-          period_seconds: 30,
-          failure_threshold: undefined,
-          path: "liveness",
-          port: 4000,
-        },
+        max_instances: 20,
+        min_instances: 5,
+        name: "generate-service-test",
       },
     },
   });

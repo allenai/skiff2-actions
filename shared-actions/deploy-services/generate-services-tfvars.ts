@@ -1,14 +1,12 @@
 import * as core from "@actions/core";
 import { readFile, writeFile } from "fs/promises";
 import { resolve } from "path";
-import { BuildConfigSchema, type ServiceConfig } from "../shared/skiff2-config.ts";
-import { mapContainer, mapService, type ServiceEntry } from "./map-service.ts";
+import { BuildConfigSchema } from "../shared/skiff2-config.ts";
+import { mapServices } from "./map-service.ts";
 
 function sanitizeBranchTag(branch: string): string {
   return branch.replace(/[^a-zA-Z0-9._-]/g, "-");
 }
-
-
 
 export async function generateServicesTFVars() {
   const configPath = core.getInput("config_file", { required: true });
@@ -39,28 +37,7 @@ export async function generateServicesTFVars() {
     );
   }
 
-  const servicesInput = core.getInput("services");
-  const serviceFilter = servicesInput
-    ? servicesInput
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean)
-    : null;
-
-  // Validate filtered service names exist in the config
-  if (serviceFilter) {
-    const configServiceNames = config.services
-      .filter((s) => s.deploy !== false)
-      .map((s) => s.name);
-    const unknownServices = serviceFilter.filter(
-      (name) => !configServiceNames.includes(name),
-    );
-    if (unknownServices.length > 0) {
-      throw new Error(
-        `Unknown services specified: ${unknownServices.join(", ")}`,
-      );
-    }
-  }
+  const servicesToDeploy = core.getInput("services");
 
   // Build services for ONLY the target environment
   const targetBranch = environmentInput || "main";
@@ -70,29 +47,7 @@ export async function generateServicesTFVars() {
 
   core.info(`Building services map for environment "${targetBranch}"`);
 
-  const serviceMap = config.services.reduce<Map<string, ServiceConfig>>((acc, service) => {
-    acc.set(service.name, service);
-    return acc;
-  }, new Map());
-
-  const services = Object.values(config.services).reduce((acc, serviceConfig) => {
-    const mappedService = mapService(serviceConfig, repoName, serviceMap, imageTag);
-    const isServiceIncluded = serviceFilter && !serviceFilter.includes(serviceConfig.name);
-
-    if (!serviceConfig.deploy || !isServiceIncluded) {
-      return acc;
-    }
-
-    const serviceKey = isMainBranch
-      ? serviceConfig.name
-      : `${deploymentEnv}-${serviceConfig.name}`;
-
-    if (mappedService) {
-      acc[serviceKey] = mappedService;
-    }
-    
-    return acc;
-  }, {} as Record<string, ServiceEntry>)
+  const services = mapServices(config.services, { servicesToDeploy, repoName, imageTag, isMainBranch, deploymentEnv})
 
   if (Object.keys(services).length === 0) {
     throw new Error("No deployable services found in config");
