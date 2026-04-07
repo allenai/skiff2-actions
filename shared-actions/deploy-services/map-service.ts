@@ -97,7 +97,7 @@ function mapService(
   serviceConfig: ServiceConfig,
   { serviceMap, repoName, imageTag }: MapServiceAdditionalInput,
 ): ServiceEntry | undefined {
-  const sidecarServices =
+  const additionalContainers =
     serviceConfig.additionalContainers?.map((additionalContainerName) => {
       const service = serviceMap.get(additionalContainerName);
 
@@ -109,6 +109,15 @@ function mapService(
         return service;
       }
     }) ?? [];
+
+  const secondaryImageContainer = serviceConfig.secondaryImage ? serviceMap.get(serviceConfig.secondaryImage) : null;
+  if (serviceConfig.secondaryImage && secondaryImageContainer == null) {
+    throw new Error(
+      `Service config for secondary image not found. Service: ${serviceConfig.name}, Missing service: ${serviceConfig.secondaryImage})}`,
+    );
+  }
+
+  const sidecarServices = [...additionalContainers, ...(secondaryImageContainer ? [secondaryImageContainer] : [])]
 
   const allConfigsForService = [serviceConfig, ...sidecarServices];
   const containers = allConfigsForService.reduce(
