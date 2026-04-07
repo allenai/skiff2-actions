@@ -44,7 +44,7 @@ export const ServiceConfigSchema = z.strictObject({
     startup: ProbeConfigSchema.optional().default({}),
     liveness: ProbeConfigSchema.optional().default({}),
     vpc: VpcSchema.optional(),
-    httpVersion: z.union([z.literal("1"), z.literal("2")]).default("1"),
+    httpVersion: z.union([z.literal("1"), z.literal("2")]).default("1").meta({ description: "Defines the HTTP version to use for this service. Only use HTTP2 if your service supports HTTP2. https://docs.cloud.google.com/run/docs/configuring/http2"}),
   });
 
 export const BuildConfigSchema = z.strictObject({
