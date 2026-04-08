@@ -32,8 +32,8 @@ resource "google_cloud_run_v2_service" "service" {
           for_each = [containers.value.port]
           content {
 
-            name           = port.value.name
-            container_port = port.value.port
+            name           = ports.value.name
+            container_port = ports.value.port
           }
         }
 
