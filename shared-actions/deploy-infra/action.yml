@@ -22,6 +22,10 @@ inputs:
     description: "Terraform command to run: 'plan' or 'apply'"
     required: false
     default: "plan"
+  deploy_tag:
+    description: "Deploy tag to use as image tag (defaults to github.sha)"
+    required: false
+    default: ${{ github.sha }}
 
 outputs:
   default_url:
@@ -50,6 +54,7 @@ runs:
         INPUT_PROJECT_ID: ${{ inputs.project_id }}
         INPUT_REGION: ${{ inputs.region }}
         INPUT_REPO_NAME: ${{ inputs.repo_name }}
+        INPUT_DEPLOY_TAG: ${{ inputs.deploy_tag }}
         TERRAFORM_DIR: ${{ github.action_path }}/../../project-terraform/infra
       run: node ./deploy-infra/generate-infra-tfvars.ts
 
