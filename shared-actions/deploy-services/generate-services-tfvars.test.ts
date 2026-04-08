@@ -108,6 +108,7 @@ test("generateServicesTFVars maps correctly", async () => {
   stubGithubActionInput("region", "fake-region");
   stubGithubActionInput("repo_name", "skiff-commodore-fake");
   stubGithubActionInput("services", "generate-service-test");
+  stubGithubActionInput("deploy_tag", "main");
 
   fs.writeFileSync("/fake-config-file.json", JSON.stringify(fakeConfig));
 
@@ -147,12 +148,11 @@ test("generateServicesTFVars maps correctly", async () => {
               memory: "2Gi",
             },
             name: "generate-service-test",
-            port:
-              {
-                name: "h2c",
-                port: 8080,
-              },
-            
+            port: {
+              name: "h2c",
+              port: 8080,
+            },
+
             secret_files: {},
             startup: {
               failure_threshold: 20,
@@ -197,5 +197,132 @@ test("generateServicesTFVars maps correctly", async () => {
         name: "generate-service-test",
       },
     },
+  });
+});
+
+const backCompatConfig = {
+  services: [
+    {
+      name: "proxy",
+      cwd: "./proxy",
+      dockerFile: "prod.Dockerfile",
+      dependsOn: ["ui"],
+      secondaryImage: "api",
+      extraBuildArgs: [
+        "--build-arg",
+        "UI_IMAGE=gcr.io/${PROJECT_ID}/${REPO_NAME}-ui:${COMMIT_SHA}",
+      ],
+      isRootService: true,
+      allowUnauthenticated: true,
+    },
+    {
+      name: "api",
+      cwd: "./api",
+      deploy: false,
+    },
+    {
+      name: "ui",
+      cwd: "./ui",
+      deploy: false,
+    },
+    {
+      name: "mvsa",
+      allowDelete: true,
+      cwd: "./mvsa",
+    },
+  ],
+};
+
+test("generateServicesTFVars maps secondaryImage correctly", async () => {
+  stubGithubActionInput("config_file", "/fake-config-file.json");
+  stubGithubActionInput("project_id", "fake-skiff-project");
+  stubGithubActionInput("region", "fake-region");
+  stubGithubActionInput("repo_name", "skiff-commodore-fake");
+  stubGithubActionInput("deploy_tag", "latest");
+
+  fs.writeFileSync("/fake-config-file.json", JSON.stringify(backCompatConfig));
+
+  fs.mkdirSync("/terraform");
+  vi.stubEnv("TERRAFORM_DIR", "/terraform");
+
+  await generateServicesTFVars();
+
+  const fileContents = fs.readFileSync(
+    "/terraform/generated.auto.tfvars.json",
+    { encoding: "utf-8" },
+  ) as string;
+  const parsedFileContents = JSON.parse(fileContents);
+
+  expect(parsedFileContents).toEqual({
+    project_id: "fake-skiff-project",
+    region: "fake-region",
+    services: {
+      proxy: {
+        name: "proxy",
+        containers: {
+          proxy: {
+            name: "proxy",
+            container_name: "skiff-commodore-fake-proxy",
+            secret_files: {},
+            machine: {
+              memory: "512Mi",
+              cpu: "1",
+              cpu_idle: true,
+            },
+            startup: {},
+            liveness: {},
+            port: {
+              name: "http1",
+              port: 8080,
+            },
+          },
+          api: {
+            name: "api",
+            container_name: "skiff-commodore-fake-api",
+            secret_files: {},
+            machine: {
+              memory: "512Mi",
+              cpu: "1",
+              cpu_idle: true,
+            },
+            startup: {},
+            liveness: {},
+          },
+        },
+        image_tag: "latest",
+        allow_unauthenticated: true,
+        allow_delete: false,
+        min_instances: 1,
+        max_instances: 10,
+      },
+      mvsa: {
+        name: "mvsa",
+        containers: {
+          mvsa: {
+            name: "mvsa",
+            container_name: "skiff-commodore-fake-mvsa",
+            secret_files: {},
+            machine: {
+              memory: "512Mi",
+              cpu: "1",
+              cpu_idle: true,
+            },
+            startup: {},
+            liveness: {},
+            port: {
+              name: "http1",
+              port: 8080,
+            },
+          },
+        },
+        image_tag: "latest",
+        allow_unauthenticated: false,
+        allow_delete: true,
+        min_instances: 1,
+        max_instances: 10,
+      },
+    },
+    deployment_environment: "prod",
+    image_tag: "latest",
   });
 });
