@@ -19,7 +19,6 @@ const fakeConfig = {
       name: "generate-service-test",
       cwd: ".",
       dockerFile: "build-test.Dockerfile",
-      additionalContainers: ["generate-service-test-sidecar"],
       deploy: true,
       isRootService: true,
       allowUnauthenticated: true,
@@ -49,41 +48,35 @@ const fakeConfig = {
         path: "liveness",
         port: 4000,
       },
-    },
-    {
-      name: "generate-service-test-sidecar",
-      cwd: "./sidecar",
-      deploy: false,
-      dockerFile: "sidecar.Dockerfile",
-      isRootService: false,
-      allowUnauthenticated: false,
-      allowDelete: false,
-      httpVersion: "1",
-      secretFiles: {},
-      customDomains: [],
-      machine: {
-        minInstances: 1,
-        maxInstances: 2,
-        memory: "512Mi",
-        cpu: 1,
-        cpuIdle: true,
-      },
-      startup: {
-        initialDelaySeconds: 1,
-        timeoutSeconds: 2,
-        periodSeconds: 3,
-        failureThreshold: 4,
-        path: "sidecar-startup",
-        port: 5,
-      },
-      liveness: {
-        initialDelaySeconds: 6,
-        timeoutSeconds: 7,
-        periodSeconds: 8,
-        failureThreshold: 9,
-        path: "sidecar-liveness",
-        port: 10,
-      },
+      sidecars: [
+        {
+          name: "generate-service-test-sidecar",
+          cwd: "./sidecar",
+          dockerFile: "sidecar.Dockerfile",
+          secretFiles: {},
+          machine: {
+            memory: "512Mi",
+            cpu: 1,
+            cpuIdle: true,
+          },
+          startup: {
+            initialDelaySeconds: 1,
+            timeoutSeconds: 2,
+            periodSeconds: 3,
+            failureThreshold: 4,
+            path: "sidecar-startup",
+            port: 5,
+          },
+          liveness: {
+            initialDelaySeconds: 6,
+            timeoutSeconds: 7,
+            periodSeconds: 8,
+            failureThreshold: 9,
+            path: "sidecar-liveness",
+            port: 10,
+          },
+        },
+      ],
     },
     {
       name: "filteredService",
@@ -154,12 +147,12 @@ test("generateServicesTFVars maps correctly", async () => {
               memory: "2Gi",
             },
             name: "generate-service-test",
-            ports: [
+            port:
               {
                 name: "h2c",
                 port: 8080,
               },
-            ],
+            
             secret_files: {},
             startup: {
               failure_threshold: 20,
@@ -187,7 +180,6 @@ test("generateServicesTFVars maps correctly", async () => {
               memory: "512Mi",
             },
             name: "generate-service-test-sidecar",
-            ports: [],
             secret_files: {},
             startup: {
               failure_threshold: 4,

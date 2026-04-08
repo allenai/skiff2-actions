@@ -1,4 +1,4 @@
-import type { ServiceConfig } from "../shared/skiff2-config";
+import type { ContainerConfig, ServiceConfig } from "../shared/skiff2-config";
 
 interface ProbeConfig {
   initial_delay_seconds?: number;
@@ -19,7 +19,7 @@ interface Container {
   container_name: string;
   secret_files: Record<string, string>;
 
-  ports: PortConfig[];
+  port?: PortConfig;
 
   vpc?: {
     network: string;
@@ -37,50 +37,64 @@ interface Container {
   liveness: ProbeConfig;
 }
 
-function mapContainer(
-  serviceConfig: ServiceConfig,
+function baseMapToContainer(
+  config: ServiceConfig | ContainerConfig,
   repoName: string,
-): Container | undefined {
+): Container {
   const container: Container = {
-    name: serviceConfig.name,
-    container_name: `${repoName}-${serviceConfig.name}`,
-    secret_files: serviceConfig.secretFiles,
-    ports: serviceConfig.deploy
-      ? [
-          {
-            name: serviceConfig.httpVersion === "2" ? "h2c" : "http1",
-            port: 8080,
-          },
-        ]
-      : [],
+    name: config.name,
+    container_name: `${repoName}-${config.name}`,
+    secret_files: config.secretFiles,
     machine: {
-      memory: serviceConfig.machine.memory,
-      cpu: String(serviceConfig.machine.cpu),
-      cpu_idle: serviceConfig.machine.cpuIdle,
+      memory: config.machine.memory,
+      cpu: String(config.machine.cpu),
+      cpu_idle: config.machine.cpuIdle,
     },
     startup: {
-      initial_delay_seconds: serviceConfig.startup.initialDelaySeconds,
-      timeout_seconds: serviceConfig.startup.timeoutSeconds,
-      period_seconds: serviceConfig.startup.periodSeconds,
-      failure_threshold: serviceConfig.startup.failureThreshold,
-      path: serviceConfig.startup.path,
-      port: serviceConfig.startup.port,
+      initial_delay_seconds: config.startup.initialDelaySeconds,
+      timeout_seconds: config.startup.timeoutSeconds,
+      period_seconds: config.startup.periodSeconds,
+      failure_threshold: config.startup.failureThreshold,
+      path: config.startup.path,
+      port: config.startup.port,
     },
     liveness: {
-      initial_delay_seconds: serviceConfig.liveness.initialDelaySeconds,
-      timeout_seconds: serviceConfig.liveness.timeoutSeconds,
-      period_seconds: serviceConfig.liveness.periodSeconds,
-      failure_threshold: serviceConfig.liveness.failureThreshold,
-      path: serviceConfig.liveness.path,
-      port: serviceConfig.liveness.port,
+      initial_delay_seconds: config.liveness.initialDelaySeconds,
+      timeout_seconds: config.liveness.timeoutSeconds,
+      period_seconds: config.liveness.periodSeconds,
+      failure_threshold: config.liveness.failureThreshold,
+      path: config.liveness.path,
+      port: config.liveness.port,
     },
   };
 
-  if (serviceConfig.vpc) {
-    container.vpc = serviceConfig.vpc;
+  if (config.vpc) {
+    container.vpc = config.vpc;
   }
 
   return container;
+}
+
+function mapServiceToContainer(
+  serviceConfig: ServiceConfig,
+  repoName: string,
+): Container | undefined {
+  const container = baseMapToContainer(serviceConfig, repoName);
+  if (serviceConfig.deploy) {
+    container.port = {
+      name: serviceConfig.httpVersion === "2" ? "h2c" : "http1",
+      port: 8080,
+    };
+  }
+
+  return container;
+}
+
+function mapSidecarToContainer(
+  sidecar: ContainerConfig,
+  repoName: string,
+): Container {
+  return baseMapToContainer(sidecar, repoName);
 }
 
 export interface ServiceEntry {
@@ -107,18 +121,14 @@ function mapService(
   serviceConfig: ServiceConfig,
   { serviceMap, repoName, imageTag }: MapServiceAdditionalInput,
 ): ServiceEntry | undefined {
-  const additionalContainers =
-    serviceConfig.additionalContainers?.map((additionalContainerName) => {
-      const service = serviceMap.get(additionalContainerName);
-
-      if (service == null) {
-        throw new Error(
-          `Service config for additional container not found. Service: ${serviceConfig.name}, Missing service: ${additionalContainerName})}`,
-        );
-      } else {
-        return service;
-      }
-    }) ?? [];
+  const sidecarContainers =
+    serviceConfig.sidecars?.reduce<Record<string, Container>>(
+      (acc, sidecar) => {
+        acc[sidecar.name] = mapSidecarToContainer(sidecar, repoName);
+        return acc;
+      },
+      {},
+    ) ?? {};
 
   const secondaryImageContainer = serviceConfig.secondaryImage
     ? serviceMap.get(serviceConfig.secondaryImage)
@@ -129,15 +139,13 @@ function mapService(
     );
   }
 
-  const sidecarServices = [
-    ...additionalContainers,
+  const allConfigsForService = [
+    serviceConfig,
     ...(secondaryImageContainer ? [secondaryImageContainer] : []),
   ];
-
-  const allConfigsForService = [serviceConfig, ...sidecarServices];
-  const containers = allConfigsForService.reduce<Record<string, Container>>(
+  const mappedServices = allConfigsForService.reduce<Record<string, Container>>(
     (acc, service) => {
-      const mappedContainer = mapContainer(service, repoName);
+      const mappedContainer = mapServiceToContainer(service, repoName);
 
       if (mappedContainer) {
         acc[service.name] = mappedContainer;
@@ -150,7 +158,7 @@ function mapService(
 
   const service: ServiceEntry = {
     name: serviceConfig.name,
-    containers,
+    containers: { ...mappedServices, ...sidecarContainers },
     image_tag: imageTag,
     allow_unauthenticated: serviceConfig.allowUnauthenticated,
     allow_delete: serviceConfig.allowDelete,
