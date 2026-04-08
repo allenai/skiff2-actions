@@ -55,6 +55,7 @@ variable "services" {
       }), {})
     }))
 
+    name                  = string
     min_instances         = number
     max_instances         = number
     allow_delete          = bool
