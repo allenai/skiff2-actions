@@ -40,7 +40,7 @@ module "cloud_run_service" {
     google-beta = google-beta
   }
 
-  service_name           = each.key
+  service_name           = each.value.name
   service_containers     = each.value.containers
   project_id             = var.project_id
   project_number         = data.google_project.project.number
