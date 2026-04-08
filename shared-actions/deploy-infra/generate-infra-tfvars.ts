@@ -48,7 +48,7 @@ async function main() {
   for (const branch of allEnvironments) {
     const isMainBranch = branch === "main";
     const deploymentEnv = isMainBranch ? "prod" : sanitizeBranchTag(branch);
-    const imageTag = sanitizeBranchTag(branch);
+    const imageTag = core.getInput("deploy_tag", { required: true });
 
     for (const service of config.services) {
       if (service.deploy === false) continue;
