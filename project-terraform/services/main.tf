@@ -52,3 +52,4 @@ module "cloud_run_service" {
   allow_delete           = each.value.allow_delete
   allow_unauthenticated  = each.value.allow_unauthenticated
 }
+
