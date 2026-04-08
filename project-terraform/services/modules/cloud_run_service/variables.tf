@@ -3,27 +3,28 @@ variable "service_name" {
   type        = string
 }
 
-variable "service" {
-  description = "Service configuration object"
-  type = object({
-    name                     = string
-    container_name           = string
-    secondary_container_name = optional(string)
-    allow_unauthenticated    = bool
-    allow_delete             = bool
-    secret_files             = map(string)
-    http_version             = string
+variable "service_containers" {
+  description = "Service configuration objects, including sidecars"
+  type = map(object({
+    name           = string
+    container_name = string
+    secret_files   = map(string)
+
+    port = optional(object({
+      name = string
+      port = number
+    }))
+
     vpc = optional(object({
       network    = string
       subnetwork = string
       egress     = string
     }))
+
     machine = object({
-      min_instances = number
-      max_instances = number
-      memory        = string
-      cpu           = string
-      cpu_idle      = bool
+      memory   = string
+      cpu      = string
+      cpu_idle = bool
     })
 
     startup = optional(object({
@@ -45,7 +46,7 @@ variable "service" {
       path = optional(string, "/")
       port = optional(number, 8080)
     }), {})
-  })
+  }))
 }
 
 variable "project_id" {
@@ -71,4 +72,21 @@ variable "deployment_environment" {
 variable "image_tag" {
   description = "The image tag to use for container images (e.g. branch name)"
   type        = string
+}
+
+variable "allow_unauthenticated" {
+  type    = bool
+  default = false
+}
+
+variable "allow_delete" {
+  type = bool
+}
+
+variable "min_instances" {
+  type = number
+}
+
+variable "max_instances" {
+  type = number
 }
