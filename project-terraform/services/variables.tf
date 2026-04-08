@@ -12,47 +12,61 @@ variable "region" {
 variable "services" {
   description = "Map of Cloud Run services to deploy (single environment only)."
   type = map(object({
-    name                     = string
-    container_name           = string
-    secondary_container_name = optional(string)
-    allow_unauthenticated    = bool
-    allow_delete             = bool
-    secret_files             = map(string)
-    http_version             = string
-    custom_domains           = list(string)
-    image_tag                = string
-    deployment_environment   = string
-    vpc = optional(object({
-      network    = string
-      subnetwork = string
-      egress     = string
+    containers = map(object({
+      name           = string
+      container_name = string
+      secret_files   = map(string)
+
+      port = optional(object({
+        name = string
+        port = number
+      }))
+
+      vpc = optional(object({
+        network    = string
+        subnetwork = string
+        egress     = string
+      }))
+
+      machine = object({
+        memory   = string
+        cpu      = string
+        cpu_idle = bool
+      })
+
+      startup = optional(object({
+        initial_delay_seconds = optional(number)
+        timeout_seconds       = optional(number)
+        period_seconds        = optional(number)
+        failure_threshold     = optional(number)
+
+        path = optional(string, "/")
+        port = optional(number, 8080)
+      }), {})
+
+      liveness = optional(object({
+        initial_delay_seconds = optional(number)
+        timeout_seconds       = optional(number)
+        period_seconds        = optional(number)
+        failure_threshold     = optional(number)
+
+        path = optional(string, "/")
+        port = optional(number, 8080)
+      }), {})
     }))
-    machine = object({
-      min_instances = number
-      max_instances = number
-      memory        = string
-      cpu           = string
-      cpu_idle      = bool
-    })
 
-    startup = optional(object({
-      initial_delay_seconds = optional(number)
-      timeout_seconds       = optional(number)
-      period_seconds        = optional(number)
-      failure_threshold     = optional(number)
-
-      path = optional(string)
-      port = optional(number)
-    }), {})
-
-    liveness = optional(object({
-      initial_delay_seconds = optional(number)
-      timeout_seconds       = optional(number)
-      period_seconds        = optional(number)
-      failure_threshold     = optional(number)
-
-      path = optional(string)
-      port = optional(number)
-    }), {})
+    min_instances         = number
+    max_instances         = number
+    allow_delete          = bool
+    allow_unauthenticated = bool
   }))
 }
+
+variable "deployment_environment" {
+  type = string
+}
+
+variable "image_tag" {
+  type = string
+}
+
