@@ -31,7 +31,7 @@ async function main() {
   for (const service of config.services) {
     if (service.deploy === false) continue;
     if (service.isRootService || !defaultServiceName) {
-      defaultServiceName = service.name;
+      defaultServiceName = `prod-${service.name}`;
     }
   }
 
