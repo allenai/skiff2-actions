@@ -26,6 +26,7 @@ resource "google_cloud_run_v2_service" "service" {
     dynamic "containers" {
       for_each = var.service_containers
       content {
+        name  = containers.value.name
         image = "gcr.io/${var.project_id}/${containers.value.container_name}:${var.image_tag}"
 
         dynamic "ports" {
@@ -114,7 +115,7 @@ resource "google_cloud_run_v2_service" "service" {
         name = lower(replace(volumes.key, "_", "-"))
 
         secret {
-          secret = "${var.deployment_environment}-${var.service_name}-${replace(volumes.key, "_", "-")}"
+          secret = "${var.deployment_environment}-${containers.value.name}-${replace(volumes.key, "_", "-")}"
 
           items {
             version = "latest"
