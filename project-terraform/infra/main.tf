@@ -166,7 +166,7 @@ resource "google_compute_url_map" "default" {
   dynamic "host_rule" {
     for_each = toset(var.branch_environments)
     content {
-      hosts = [for _, d in local.base_domains : "${host_rule.value}.${d}"]
+      hosts        = [for _, d in local.base_domains : "${host_rule.value}.${d}"]
       path_matcher = "branch-${host_rule.value}"
     }
   }
