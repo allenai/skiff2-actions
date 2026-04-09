@@ -211,9 +211,9 @@ resource "google_certificate_manager_certificate_map" "default" {
 }
 
 resource "google_certificate_manager_certificate" "default" {
-  for_each   = toset(local.all_domains)
-  name       = "${local.project_name}-cert-${replace(each.value, ".", "-")}"
-  project    = var.project_id
+  for_each = toset(local.all_domains)
+  name     = "${local.project_name}-cert-${replace(each.value, ".", "-")}"
+  project  = var.project_id
 
   managed {
     domains = [each.value]
@@ -236,10 +236,12 @@ module "lb-http" {
   name    = "default-lb"
   project = var.project_id
 
+  load_balancing_scheme = "EXTERNAL_MANAGED"
+
   create_address = false
   address        = data.google_compute_global_address.lb_ip.address
 
-  ssl            = true
+  ssl             = true
   certificate_map = google_certificate_manager_certificate_map.default.id
   https_redirect  = true
 
