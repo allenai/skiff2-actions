@@ -18,10 +18,6 @@ inputs:
     description: "Terraform command to run: 'plan' or 'apply'"
     required: false
     default: "plan"
-  deploy_tag:
-    description: "Deploy tag to use as image tag (defaults to github.sha)"
-    required: false
-    default: ${{ github.sha }}
   use_classic_load_balancer:
     description: "Use the Classic Application Load Balancer instead of the Global Application Load Balancer"
     required: false
