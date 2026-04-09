@@ -36,8 +36,6 @@ const ContainerConfigSchema = z.strictObject({
   dockerFile: z.string().optional(),
   dependsOn: z.array(z.string()).optional(),
   extraBuildArgs: z.array(z.string()).optional(),
-  allowUnauthenticated: z.boolean().optional().default(false),
-  allowDelete: z.boolean().optional(),
   secretFiles: z.record(z.string(), z.string()).optional().default({}),
   machine: ContainerMachineConfigSchema.optional().prefault({}),
   startup: ProbeConfigSchema.optional().default({}),
