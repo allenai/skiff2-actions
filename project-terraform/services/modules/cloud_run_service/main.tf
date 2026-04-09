@@ -18,7 +18,7 @@ resource "google_cloud_run_v2_service" "service" {
   launch_stage         = "GA"
   iap_enabled          = true
   invoker_iam_disabled = true
-  deletion_protection  = !var.service.allow_delete
+  deletion_protection  = !var.allow_delete
 
   template {
     scaling {
