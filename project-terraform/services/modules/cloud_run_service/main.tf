@@ -11,10 +11,7 @@ data "google_secret_manager_secrets" "app_secrets" {
 
 resource "google_cloud_run_v2_service" "service" {
   provider = google-beta
-  # URL masking requires the domain segment to map to the service name
-  # prod services drop the environment prefix for cleaner naming and URL mask routing.
-  # env/branch services keep the prefix (`dev-api`) so the URL mask can resolve them.
-  name     = var.deployment_environment == "prod" ? var.service_name : "${var.deployment_environment}-${var.service_name}"
+  name     = "${var.deployment_environment}-${var.service_name}"
   location = var.region
 
   ingress              = "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER"
