@@ -1,8 +1,6 @@
 
 # Fetch Secret Manager secrets for this service using the service name as a prefix.
 # Filter is a substring match, so "name:my-service-" matches any secret whose name contains that string.
-#
-# TODO?: change secrets -- they are currently env-service prefixed
 data "google_secret_manager_secrets" "app_secrets" {
   for_each = toset([for key, container in var.service_containers : container.name])
 
