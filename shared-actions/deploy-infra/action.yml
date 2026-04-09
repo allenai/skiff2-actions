@@ -65,18 +65,13 @@ runs:
       working-directory: ${{ github.action_path }}/../../project-terraform/infra
       run: terraform init -backend-config="bucket=${{ inputs.project_id }}-tf-state"
 
-    - name: Update URL map first (releases backend references before deletion)
-      if: inputs.command == 'apply'
-      shell: bash
-      working-directory: ${{ github.action_path }}/../../project-terraform/infra
-      run: terraform apply -target=google_compute_url_map.default -input=false -auto-approve
-
     - name: Terraform ${{ inputs.command == 'apply' && 'Apply' || 'Plan' }}
       id: terraform
       shell: bash
       working-directory: ${{ github.action_path }}/../../project-terraform/infra
       run: |
         if [ "${{ inputs.command }}" = "apply" ]; then
+          terraform apply -target=google_compute_url_map.default -input=false -auto-approve
           terraform apply -input=false -auto-approve
         else
           terraform plan -input=false
