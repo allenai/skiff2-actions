@@ -58,7 +58,7 @@ export const ServiceConfigSchema = z.strictObject({
     }),
   sidecars: z.array(ContainerConfigSchema).optional(),
   allowUnauthenticated: z.boolean().optional().default(false),
-  allowDelete: z.boolean().optional().default(false),
+  allowDelete: z.boolean().optional(),
   customDomains: z.array(z.string()).optional().default([]),
   machine: MachineConfigSchema.optional().prefault({}),
   httpVersion: z
