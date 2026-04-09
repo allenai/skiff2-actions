@@ -255,6 +255,8 @@ module "lb-http" {
       enable_cdn      = false
       security_policy = data.google_compute_security_policy.cloud_armor.self_link
 
+      external_managed_migration_state = "TEST_ALL_TRAFFIC"
+
       log_config = {
         enable      = true
         sample_rate = 1.0
