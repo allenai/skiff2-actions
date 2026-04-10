@@ -48,6 +48,7 @@ export const ServiceConfigSchema = z.strictObject({
   ...ContainerConfigSchema.shape,
   deploy: z.boolean().optional().default(true),
   isRootService: z.boolean().optional(),
+  isRemoteService: z.boolean().optional(),
   secondaryImage: z
     .string()
     .optional()

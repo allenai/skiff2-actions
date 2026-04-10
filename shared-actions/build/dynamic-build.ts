@@ -285,7 +285,9 @@ async function buildAll(
         `Unknown services specified: ${unknownServices.join(", ")}`,
       );
     }
-    services = config.services.filter((s) => serviceFilter.includes(s.name));
+    services = config.services.filter(
+      (s) => serviceFilter.includes(s.name) && s.isRemoteService !== true,
+    );
   }
 
   core.info(`Building ${services.length} services`);

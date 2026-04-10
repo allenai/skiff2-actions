@@ -187,7 +187,7 @@ export function mapServices(
   // Validate filtered service names exist in the config
   if (serviceFilter) {
     const configServiceNames = services
-      .filter((s) => s.deploy !== false)
+      .filter((s) => s.deploy !== false && s.isRemoteService !== true)
       .map((s) => s.name);
 
     const unknownServices = serviceFilter.filter(
@@ -219,7 +219,7 @@ export function mapServices(
       return acc;
     }
 
-    if (!serviceConfig.deploy) {
+    if (!serviceConfig.deploy || serviceConfig.isRemoteService) {
       return acc;
     }
 
