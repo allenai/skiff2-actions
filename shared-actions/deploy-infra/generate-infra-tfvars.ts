@@ -31,7 +31,7 @@ async function main() {
   for (const service of config.services) {
     if (service.deploy === false) continue;
     if (service.isRootService || !defaultServiceName) {
-      defaultServiceName = `prod-${service.name}`;
+      defaultServiceName = service.name;
     }
   }
 
@@ -44,7 +44,7 @@ async function main() {
   for (const service of config.services) {
     if (service.deploy === false) continue;
     for (const domain of service.customDomains) {
-      customDomainMappings[domain] = service.name;
+      customDomainMappings[domain] = `prod-${service.name}`;
     }
   }
 

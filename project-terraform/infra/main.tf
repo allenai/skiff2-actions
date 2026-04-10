@@ -91,7 +91,7 @@ resource "google_compute_region_network_endpoint_group" "default_service" {
   region                = var.region
   project               = var.project_id
   cloud_run {
-    service = var.default_service
+    service = "prod-${var.default_service}"
   }
   lifecycle {
     create_before_destroy = true
