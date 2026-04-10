@@ -66,6 +66,7 @@ function baseMapToContainer(
       path: config.liveness.path,
       port: config.liveness.port,
     },
+    ports: []
   };
 
   if (config.vpc) {
@@ -81,10 +82,10 @@ function mapServiceToContainer(
 ): Container | undefined {
   const container = baseMapToContainer(serviceConfig, repoName);
   if (serviceConfig.deploy) {
-    container.port = {
+    container.ports = [{
       name: serviceConfig.httpVersion === "2" ? "h2c" : "http1",
       port: 8080,
-    };
+    }];
   }
 
   return container;
