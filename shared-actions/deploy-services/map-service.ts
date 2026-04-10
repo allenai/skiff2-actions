@@ -33,14 +33,32 @@ interface Container {
     cpu_idle: boolean;
   };
 
-  startup: ProbeConfig;
-  liveness: ProbeConfig;
+  startup?: ProbeConfig;
+  liveness?: ProbeConfig;
 }
 
 function baseMapToContainer(
   config: ServiceConfig | ContainerConfig,
   repoName: string,
 ): Container {
+  const startup = config.startup != null ? {
+      initial_delay_seconds: config.startup.initialDelaySeconds,
+      timeout_seconds: config.startup.timeoutSeconds,
+      period_seconds: config.startup.periodSeconds,
+      failure_threshold: config.startup.failureThreshold,
+      path: config.startup.path,
+      port: config.startup.port,
+    } : undefined;
+
+    const liveness = config.liveness != null ? {
+      initial_delay_seconds: config.liveness.initialDelaySeconds,
+      timeout_seconds: config.liveness.timeoutSeconds,
+      period_seconds: config.liveness.periodSeconds,
+      failure_threshold: config.liveness.failureThreshold,
+      path: config.liveness.path,
+      port: config.liveness.port,
+    } : undefined;
+    
   const container: Container = {
     name: config.name,
     container_name: `${repoName}-${config.name}`,
@@ -50,22 +68,8 @@ function baseMapToContainer(
       cpu: String(config.machine.cpu),
       cpu_idle: config.machine.cpuIdle,
     },
-    startup: {
-      initial_delay_seconds: config.startup.initialDelaySeconds,
-      timeout_seconds: config.startup.timeoutSeconds,
-      period_seconds: config.startup.periodSeconds,
-      failure_threshold: config.startup.failureThreshold,
-      path: config.startup.path,
-      port: config.startup.port,
-    },
-    liveness: {
-      initial_delay_seconds: config.liveness.initialDelaySeconds,
-      timeout_seconds: config.liveness.timeoutSeconds,
-      period_seconds: config.liveness.periodSeconds,
-      failure_threshold: config.liveness.failureThreshold,
-      path: config.liveness.path,
-      port: config.liveness.port,
-    },
+    startup,
+    liveness,
   };
 
   if (config.vpc) {

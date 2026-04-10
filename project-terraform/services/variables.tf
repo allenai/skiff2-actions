@@ -42,7 +42,7 @@ variable "services" {
 
         path = optional(string, "/")
         port = optional(number, 8080)
-      }), {})
+      }))
 
       liveness = optional(object({
         initial_delay_seconds = optional(number)
@@ -52,7 +52,7 @@ variable "services" {
 
         path = optional(string, "/")
         port = optional(number, 8080)
-      }), {})
+      }))
     }))
 
     name                  = string

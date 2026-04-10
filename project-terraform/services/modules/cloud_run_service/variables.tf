@@ -35,7 +35,7 @@ variable "service_containers" {
 
       path = optional(string, "/")
       port = optional(number, 8080)
-    }), {})
+    }))
 
     liveness = optional(object({
       initial_delay_seconds = optional(number)
@@ -45,7 +45,7 @@ variable "service_containers" {
 
       path = optional(string, "/")
       port = optional(number, 8080)
-    }), {})
+    }))
   }))
 }
 

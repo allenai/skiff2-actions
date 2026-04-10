@@ -66,15 +66,7 @@ const fakeConfig = {
             failureThreshold: 4,
             path: "sidecar-startup",
             port: 5,
-          },
-          liveness: {
-            initialDelaySeconds: 6,
-            timeoutSeconds: 7,
-            periodSeconds: 8,
-            failureThreshold: 9,
-            path: "sidecar-liveness",
-            port: 10,
-          },
+          }
         },
       ],
     },
@@ -166,14 +158,6 @@ test("generateServicesTFVars maps correctly", async () => {
           {
             container_name:
               "skiff-commodore-fake-generate-service-test-sidecar",
-            liveness: {
-              failure_threshold: 9,
-              initial_delay_seconds: 6,
-              path: "sidecar-liveness",
-              period_seconds: 8,
-              port: 10,
-              timeout_seconds: 7,
-            },
             machine: {
               cpu: "1",
               cpu_idle: true,

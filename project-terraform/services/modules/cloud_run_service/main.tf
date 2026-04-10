@@ -26,7 +26,7 @@ resource "google_cloud_run_v2_service" "service" {
     dynamic "containers" {
       for_each = var.service_containers
       content {
-        name  = containers.value.container_name
+        name  = containers.value.name
         image = "gcr.io/${var.project_id}/${containers.value.container_name}:${var.image_tag}"
 
         dynamic "ports" {
@@ -46,28 +46,34 @@ resource "google_cloud_run_v2_service" "service" {
         }
 
         # Startup probe to handle application startup
-        startup_probe {
-          initial_delay_seconds = containers.value.startup.initial_delay_seconds
-          timeout_seconds       = containers.value.startup.timeout_seconds
-          period_seconds        = containers.value.startup.period_seconds
-          failure_threshold     = containers.value.startup.failure_threshold
+        dynamic "startup_probe" {
+          for_each = containers.value.startup != null ? [containers.value.startup] : []
+          content {
+            initial_delay_seconds = containers.value.startup.initial_delay_seconds
+            timeout_seconds       = containers.value.startup.timeout_seconds
+            period_seconds        = containers.value.startup.period_seconds
+            failure_threshold     = containers.value.startup.failure_threshold
 
-          http_get {
-            path = containers.value.startup.path
-            port = containers.value.startup.port
+            http_get {
+              path = containers.value.startup.path
+              port = containers.value.startup.port
+            }
           }
         }
 
         # Liveness probe - using HTTP GET on the root health check endpoint
-        liveness_probe {
-          initial_delay_seconds = containers.value.liveness.initial_delay_seconds
-          timeout_seconds       = containers.value.liveness.timeout_seconds
-          period_seconds        = containers.value.liveness.period_seconds
-          failure_threshold     = containers.value.liveness.failure_threshold
+        dynamic "liveness_probe" {
+          for_each = containers.value.startup != null ? [containers.value.startup] : []
+          content {
+            initial_delay_seconds = containers.value.liveness.initial_delay_seconds
+            timeout_seconds       = containers.value.liveness.timeout_seconds
+            period_seconds        = containers.value.liveness.period_seconds
+            failure_threshold     = containers.value.liveness.failure_threshold
 
-          http_get {
-            path = containers.value.liveness.path
-            port = containers.value.liveness.port
+            http_get {
+              path = containers.value.liveness.path
+              port = containers.value.liveness.port
+            }
           }
         }
 
