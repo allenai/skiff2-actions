@@ -1,3 +1,4 @@
+
 # Fetch Secret Manager secrets for this service using the service name as a prefix.
 # Filter is a substring match, so "name:my-service-" matches any secret whose name contains that string.
 data "google_secret_manager_secrets" "app_secrets" {

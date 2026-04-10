@@ -3,10 +3,8 @@ import { readFile, writeFile } from "fs/promises";
 import { resolve } from "path";
 import { BuildConfigSchema } from "../shared/skiff2-config.ts";
 import { mapServices } from "./map-service.ts";
+import { sanitizeBranchTag } from "../shared/utils.ts";
 
-function sanitizeBranchTag(branch: string): string {
-  return branch.replace(/[^a-zA-Z0-9._-]/g, "-");
-}
 
 export async function generateServicesTFVars() {
   const configPath = core.getInput("config_file", { required: true });
@@ -31,17 +29,12 @@ export async function generateServicesTFVars() {
   const environmentInput = core.getInput("environment");
   const allEnvironments = config.environments ?? ["main"];
 
-  if (environmentInput && !allEnvironments.includes(environmentInput)) {
-    throw new Error(
-      `Environment "${environmentInput}" not found in config. Available: ${allEnvironments.join(", ")}`,
-    );
-  }
-
   const servicesToDeploy = core.getInput("services");
 
   // Build services for ONLY the target environment
   const targetBranch = environmentInput || "main";
   const isMainBranch = targetBranch === "main";
+  const isLongLived = allEnvironments.includes(targetBranch);
   const deploymentEnv = isMainBranch ? "prod" : sanitizeBranchTag(targetBranch);
   const imageTag = core.getInput("deploy_tag", { required: true });
 
@@ -52,6 +45,7 @@ export async function generateServicesTFVars() {
     repoName,
     imageTag,
     isMainBranch,
+    isLongLived,
     deploymentEnv,
   });
 
