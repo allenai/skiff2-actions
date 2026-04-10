@@ -92,6 +92,13 @@ const fakeConfig = {
       liveness: {},
     },
   ],
+  remoteServices: [
+    {
+      name: "remoteService",
+      deploy: true,
+      customDomains: [],
+    }
+  ]
 } as const satisfies BuildConfig;
 
 test("generateServicesTFVars maps correctly", async () => {

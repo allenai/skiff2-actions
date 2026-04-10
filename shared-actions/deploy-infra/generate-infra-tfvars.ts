@@ -1,8 +1,21 @@
 import * as core from "@actions/core";
 import { readFile, writeFile } from "fs/promises";
 import { resolve } from "path";
-import { BuildConfigSchema } from "../shared/skiff2-config.ts";
+import { BuildConfigSchema, type RemoteServiceConfig, type ServiceConfig } from "../shared/skiff2-config.ts";
 import { sanitizeBranchTag } from "../shared/utils.ts";
+
+const mapCustomDomainsFromService = (
+    serviceConfigs: ServiceConfig[] | RemoteServiceConfig[]
+  ): Record<string, string> => {
+    const domainMappings: Record<string, string> = {};
+    for (const service of serviceConfigs) {
+      if (service.deploy === false) continue;
+      for (const domain of service.customDomains) {
+        domainMappings[domain] = `prod-${service.name}`;
+      }
+    }
+    return domainMappings;
+  }
 
 async function main() {
   const configPath = core.getInput("config_file", { required: true });
@@ -40,13 +53,10 @@ async function main() {
   }
 
   // Build custom domain mappings from service configs (prod only)
-  const customDomainMappings: Record<string, string> = {};
-  for (const service of config.services) {
-    if (service.deploy === false) continue;
-    for (const domain of service.customDomains) {
-      customDomainMappings[domain] = `prod-${service.name}`;
-    }
-  }
+  const customDomainMappings: Record<string, string> = {
+    ...mapCustomDomainsFromService(config.remoteServices || []),
+    ...mapCustomDomainsFromService(config.services),
+  };
 
   // Branch environments (non-main, sanitized)
   const branchEnvironments = allEnvironments
