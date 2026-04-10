@@ -1,7 +1,7 @@
 # Fetch Secret Manager secrets for this service using the service name as a prefix.
 # Filter is a substring match, so "name:my-service-" matches any secret whose name contains that string.
 data "google_secret_manager_secrets" "app_secrets" {
-  for_each = toset([for key, service in var.service_containers : service.name])
+  for_each = toset([for key, container in var.service_containers : container.name])
 
   filter = "name:${var.deployment_environment}-${each.value}-"
 }
@@ -32,7 +32,6 @@ resource "google_cloud_run_v2_service" "service" {
         dynamic "ports" {
           for_each = containers.value.port != null ? [containers.value.port] : []
           content {
-
             name           = ports.value.name
             container_port = ports.value.port
           }
@@ -47,28 +46,34 @@ resource "google_cloud_run_v2_service" "service" {
         }
 
         # Startup probe to handle application startup
-        startup_probe {
-          initial_delay_seconds = containers.value.startup.initial_delay_seconds
-          timeout_seconds       = containers.value.startup.timeout_seconds
-          period_seconds        = containers.value.startup.period_seconds
-          failure_threshold     = containers.value.startup.failure_threshold
+        dynamic "startup_probe" {
+          for_each = containers.value.startup != null ? [containers.value.startup] : []
+          content {
+            initial_delay_seconds = containers.value.startup.initial_delay_seconds
+            timeout_seconds       = containers.value.startup.timeout_seconds
+            period_seconds        = containers.value.startup.period_seconds
+            failure_threshold     = containers.value.startup.failure_threshold
 
-          http_get {
-            path = containers.value.startup.path
-            port = containers.value.startup.port
+            http_get {
+              path = containers.value.startup.path
+              port = containers.value.startup.port
+            }
           }
         }
 
         # Liveness probe - using HTTP GET on the root health check endpoint
-        liveness_probe {
-          initial_delay_seconds = containers.value.liveness.initial_delay_seconds
-          timeout_seconds       = containers.value.liveness.timeout_seconds
-          period_seconds        = containers.value.liveness.period_seconds
-          failure_threshold     = containers.value.liveness.failure_threshold
+        dynamic "liveness_probe" {
+          for_each = containers.value.startup != null ? [containers.value.startup] : []
+          content {
+            initial_delay_seconds = containers.value.liveness.initial_delay_seconds
+            timeout_seconds       = containers.value.liveness.timeout_seconds
+            period_seconds        = containers.value.liveness.period_seconds
+            failure_threshold     = containers.value.liveness.failure_threshold
 
-          http_get {
-            path = containers.value.liveness.path
-            port = containers.value.liveness.port
+            http_get {
+              path = containers.value.liveness.path
+              port = containers.value.liveness.port
+            }
           }
         }
 

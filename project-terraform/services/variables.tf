@@ -12,7 +12,7 @@ variable "region" {
 variable "services" {
   description = "Map of Cloud Run services to deploy (single environment only)."
   type = map(object({
-    containers = map(object({
+    containers = list(object({
       name           = string
       container_name = string
       secret_files   = map(string)
@@ -42,7 +42,7 @@ variable "services" {
 
         path = optional(string, "/")
         port = optional(number, 8080)
-      }), {})
+      }))
 
       liveness = optional(object({
         initial_delay_seconds = optional(number)
@@ -52,7 +52,7 @@ variable "services" {
 
         path = optional(string, "/")
         port = optional(number, 8080)
-      }), {})
+      }))
     }))
 
     name                  = string

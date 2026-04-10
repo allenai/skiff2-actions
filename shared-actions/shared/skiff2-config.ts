@@ -38,8 +38,8 @@ const ContainerConfigSchema = z.strictObject({
   extraBuildArgs: z.array(z.string()).optional(),
   secretFiles: z.record(z.string(), z.string()).optional().default({}),
   machine: ContainerMachineConfigSchema.optional().prefault({}),
-  startup: ProbeConfigSchema.optional().default({}),
-  liveness: ProbeConfigSchema.optional().default({}),
+  startup: ProbeConfigSchema.optional(),
+  liveness: ProbeConfigSchema.optional(),
   vpc: VpcSchema.optional(),
 });
 export type ContainerConfig = z.infer<typeof ContainerConfigSchema>;

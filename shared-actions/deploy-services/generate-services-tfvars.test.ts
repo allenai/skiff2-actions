@@ -66,15 +66,7 @@ const fakeConfig = {
             failureThreshold: 4,
             path: "sidecar-startup",
             port: 5,
-          },
-          liveness: {
-            initialDelaySeconds: 6,
-            timeoutSeconds: 7,
-            periodSeconds: 8,
-            failureThreshold: 9,
-            path: "sidecar-liveness",
-            port: 10,
-          },
+          }
         },
       ],
     },
@@ -108,6 +100,7 @@ test("generateServicesTFVars maps correctly", async () => {
   stubGithubActionInput("region", "fake-region");
   stubGithubActionInput("repo_name", "skiff-commodore-fake");
   stubGithubActionInput("services", "generate-service-test");
+  stubGithubActionInput("deploy_tag", "main");
 
   fs.writeFileSync("/fake-config-file.json", JSON.stringify(fakeConfig));
 
@@ -131,8 +124,8 @@ test("generateServicesTFVars maps correctly", async () => {
       "generate-service-test": {
         allow_delete: true,
         allow_unauthenticated: true,
-        containers: {
-          "generate-service-test": {
+        containers: [
+          {
             container_name: "skiff-commodore-fake-generate-service-test",
             liveness: {
               initial_delay_seconds: 10,
@@ -147,12 +140,11 @@ test("generateServicesTFVars maps correctly", async () => {
               memory: "2Gi",
             },
             name: "generate-service-test",
-            port:
-              {
-                name: "h2c",
-                port: 8080,
-              },
-            
+            port: {
+              name: "h2c",
+              port: 8080,
+            },
+
             secret_files: {},
             startup: {
               failure_threshold: 20,
@@ -163,17 +155,9 @@ test("generateServicesTFVars maps correctly", async () => {
               timeout_seconds: 10,
             },
           },
-          "generate-service-test-sidecar": {
+          {
             container_name:
               "skiff-commodore-fake-generate-service-test-sidecar",
-            liveness: {
-              failure_threshold: 9,
-              initial_delay_seconds: 6,
-              path: "sidecar-liveness",
-              period_seconds: 8,
-              port: 10,
-              timeout_seconds: 7,
-            },
             machine: {
               cpu: "1",
               cpu_idle: true,
@@ -190,7 +174,7 @@ test("generateServicesTFVars maps correctly", async () => {
               timeout_seconds: 2,
             },
           },
-        },
+        ],
         image_tag: "main",
         max_instances: 20,
         min_instances: 5,

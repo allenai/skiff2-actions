@@ -5,7 +5,7 @@ variable "service_name" {
 
 variable "service_containers" {
   description = "Service configuration objects, including sidecars"
-  type = map(object({
+  type = list(object({
     name           = string
     container_name = string
     secret_files   = map(string)
@@ -35,7 +35,7 @@ variable "service_containers" {
 
       path = optional(string, "/")
       port = optional(number, 8080)
-    }), {})
+    }))
 
     liveness = optional(object({
       initial_delay_seconds = optional(number)
@@ -45,7 +45,7 @@ variable "service_containers" {
 
       path = optional(string, "/")
       port = optional(number, 8080)
-    }), {})
+    }))
   }))
 }
 
