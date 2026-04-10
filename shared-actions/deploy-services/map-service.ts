@@ -135,6 +135,9 @@ function mapService(
     );
   }
 
+  // The root service's container MUST be the first container
+  // TF or Cloud Run automatically add ports to that container if it doesn't already have some
+  // Since only one container can have ports in a service, having the root service not be first will cause problems with that
   const allConfigsForService = [
     serviceConfig,
     ...(secondaryImageContainer ? [secondaryImageContainer] : []),
