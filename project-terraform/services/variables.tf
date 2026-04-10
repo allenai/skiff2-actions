@@ -12,7 +12,7 @@ variable "region" {
 variable "services" {
   description = "Map of Cloud Run services to deploy (single environment only)."
   type = map(object({
-    containers = map(object({
+    containers = list(object({
       name           = string
       container_name = string
       secret_files   = map(string)

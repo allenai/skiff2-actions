@@ -1,7 +1,7 @@
 # Fetch Secret Manager secrets for this service using the service name as a prefix.
 # Filter is a substring match, so "name:my-service-" matches any secret whose name contains that string.
 data "google_secret_manager_secrets" "app_secrets" {
-  for_each = toset([for key, service in var.service_containers : service.name])
+  for_each = toset([for key, container in var.service_containers : container.name])
 
   filter = "name:${var.deployment_environment}-${each.value}-"
 }

@@ -5,7 +5,7 @@ variable "service_name" {
 
 variable "service_containers" {
   description = "Service configuration objects, including sidecars"
-  type = map(object({
+  type = list(object({
     name           = string
     container_name = string
     secret_files   = map(string)

@@ -66,7 +66,7 @@ function baseMapToContainer(
       path: config.liveness.path,
       port: config.liveness.port,
     },
-    ports: []
+    ports: [],
   };
 
   if (config.vpc) {
@@ -82,10 +82,12 @@ function mapServiceToContainer(
 ): Container | undefined {
   const container = baseMapToContainer(serviceConfig, repoName);
   if (serviceConfig.deploy) {
-    container.ports = [{
-      name: serviceConfig.httpVersion === "2" ? "h2c" : "http1",
-      port: 8080,
-    }];
+    container.ports = [
+      {
+        name: serviceConfig.httpVersion === "2" ? "h2c" : "http1",
+        port: 8080,
+      },
+    ];
   }
 
   return container;
@@ -100,7 +102,7 @@ function mapSidecarToContainer(
 
 export interface ServiceEntry {
   name: string;
-  containers: Record<string, Container>;
+  containers: Container[];
 
   image_tag: string;
   allow_unauthenticated: boolean;
@@ -123,13 +125,9 @@ function mapService(
   { serviceMap, repoName, imageTag }: MapServiceAdditionalInput,
 ): ServiceEntry | undefined {
   const sidecarContainers =
-    serviceConfig.sidecars?.reduce<Record<string, Container>>(
-      (acc, sidecar) => {
-        acc[sidecar.name] = mapSidecarToContainer(sidecar, repoName);
-        return acc;
-      },
-      {},
-    ) ?? {};
+    serviceConfig.sidecars?.map((sidecar) =>
+      mapSidecarToContainer(sidecar, repoName),
+    ) ?? [];
 
   const secondaryImageContainer = serviceConfig.secondaryImage
     ? serviceMap.get(serviceConfig.secondaryImage)
@@ -144,22 +142,19 @@ function mapService(
     serviceConfig,
     ...(secondaryImageContainer ? [secondaryImageContainer] : []),
   ];
-  const mappedServices = allConfigsForService.reduce<Record<string, Container>>(
-    (acc, service) => {
-      const mappedContainer = mapServiceToContainer(service, repoName);
+  const mappedServices = allConfigsForService.flatMap((service) => {
+    const mappedContainer = mapServiceToContainer(service, repoName);
 
-      if (mappedContainer) {
-        acc[service.name] = mappedContainer;
-      }
+    if (mappedContainer) {
+      return [mappedContainer];
+    }
 
-      return acc;
-    },
-    {},
-  );
+    return [];
+  });
 
   const service: ServiceEntry = {
     name: serviceConfig.name,
-    containers: { ...mappedServices, ...sidecarContainers },
+    containers: [ ...mappedServices, ...sidecarContainers ],
     image_tag: imageTag,
     allow_unauthenticated: serviceConfig.allowUnauthenticated,
     allow_delete: serviceConfig.allowDelete,

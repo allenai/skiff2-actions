@@ -108,6 +108,8 @@ test("generateServicesTFVars maps correctly", async () => {
   stubGithubActionInput("region", "fake-region");
   stubGithubActionInput("repo_name", "skiff-commodore-fake");
   stubGithubActionInput("services", "generate-service-test");
+  stubGithubActionInput("deploy_tag", "main");
+  
 
   fs.writeFileSync("/fake-config-file.json", JSON.stringify(fakeConfig));
 
@@ -131,8 +133,8 @@ test("generateServicesTFVars maps correctly", async () => {
       "generate-service-test": {
         allow_delete: true,
         allow_unauthenticated: true,
-        containers: {
-          "generate-service-test": {
+        containers: [
+          {
             container_name: "skiff-commodore-fake-generate-service-test",
             liveness: {
               initial_delay_seconds: 10,
@@ -147,11 +149,11 @@ test("generateServicesTFVars maps correctly", async () => {
               memory: "2Gi",
             },
             name: "generate-service-test",
-            port:
-              {
+            ports:
+              [{
                 name: "h2c",
                 port: 8080,
-              },
+              }],
             
             secret_files: {},
             startup: {
@@ -163,7 +165,7 @@ test("generateServicesTFVars maps correctly", async () => {
               timeout_seconds: 10,
             },
           },
-          "generate-service-test-sidecar": {
+          {
             container_name:
               "skiff-commodore-fake-generate-service-test-sidecar",
             liveness: {
@@ -180,6 +182,7 @@ test("generateServicesTFVars maps correctly", async () => {
               memory: "512Mi",
             },
             name: "generate-service-test-sidecar",
+            ports: [],
             secret_files: {},
             startup: {
               failure_threshold: 4,
@@ -190,7 +193,7 @@ test("generateServicesTFVars maps correctly", async () => {
               timeout_seconds: 2,
             },
           },
-        },
+        ],
         image_tag: "main",
         max_instances: 20,
         min_instances: 5,
