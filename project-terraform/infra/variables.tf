@@ -28,3 +28,7 @@ variable "default_service" {
   description = "Key from the services map to use as the default load balancer backend"
   type        = string
 }
+
+variable "use_classic_load_balancer" {
+  type = bool
+}
