@@ -19,7 +19,7 @@ interface Container {
   container_name: string;
   secret_files: Record<string, string>;
 
-  port?: PortConfig;
+  ports: PortConfig[];
 
   vpc?: {
     network: string;

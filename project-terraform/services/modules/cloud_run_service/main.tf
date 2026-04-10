@@ -26,13 +26,12 @@ resource "google_cloud_run_v2_service" "service" {
     dynamic "containers" {
       for_each = var.service_containers
       content {
-        name  = containers.value.name
+        name  = containers.value.container_name
         image = "gcr.io/${var.project_id}/${containers.value.container_name}:${var.image_tag}"
 
         dynamic "ports" {
-          for_each = containers.value.port != null ? [containers.value.port] : []
+          for_each = containers.value.ports
           content {
-
             name           = ports.value.name
             container_port = ports.value.port
           }

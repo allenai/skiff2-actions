@@ -10,7 +10,7 @@ variable "service_containers" {
     container_name = string
     secret_files   = map(string)
 
-    port = optional(object({
+    ports = list(object({
       name = string
       port = number
     }))
