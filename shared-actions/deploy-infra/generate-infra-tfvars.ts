@@ -24,6 +24,7 @@ async function main() {
   const projectId = core.getInput("project_id", { required: true });
   const region = core.getInput("region", { required: true });
   const repoName = core.getInput("repo_name", { required: true });
+  const useClassicLoadBalancer = core.getBooleanInput("use_classic_load_balancer")
   const terraformDir = process.env.TERRAFORM_DIR;
 
   if (!terraformDir) {
@@ -96,6 +97,7 @@ async function main() {
     region,
     default_service: defaultServiceName,
     services,
+    use_classic_load_balancer: useClassicLoadBalancer
   };
 
   const tfvarsPath = resolve(terraformDir, "generated.auto.tfvars.json");
