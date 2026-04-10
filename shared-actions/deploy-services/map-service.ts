@@ -19,7 +19,7 @@ interface Container {
   container_name: string;
   secret_files: Record<string, string>;
 
-  ports: PortConfig[];
+  port?: PortConfig;
 
   vpc?: {
     network: string;
@@ -66,7 +66,6 @@ function baseMapToContainer(
       path: config.liveness.path,
       port: config.liveness.port,
     },
-    ports: [],
   };
 
   if (config.vpc) {
@@ -82,12 +81,10 @@ function mapServiceToContainer(
 ): Container | undefined {
   const container = baseMapToContainer(serviceConfig, repoName);
   if (serviceConfig.deploy) {
-    container.ports = [
-      {
-        name: serviceConfig.httpVersion === "2" ? "h2c" : "http1",
-        port: 8080,
-      },
-    ];
+    container.port = {
+      name: serviceConfig.httpVersion === "2" ? "h2c" : "http1",
+      port: 8080,
+    };
   }
 
   return container;
@@ -154,7 +151,7 @@ function mapService(
 
   const service: ServiceEntry = {
     name: serviceConfig.name,
-    containers: [ ...mappedServices, ...sidecarContainers ],
+    containers: [...mappedServices, ...sidecarContainers],
     image_tag: imageTag,
     allow_unauthenticated: serviceConfig.allowUnauthenticated,
     allow_delete: serviceConfig.allowDelete,

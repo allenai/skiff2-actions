@@ -109,7 +109,6 @@ test("generateServicesTFVars maps correctly", async () => {
   stubGithubActionInput("repo_name", "skiff-commodore-fake");
   stubGithubActionInput("services", "generate-service-test");
   stubGithubActionInput("deploy_tag", "main");
-  
 
   fs.writeFileSync("/fake-config-file.json", JSON.stringify(fakeConfig));
 
@@ -149,12 +148,11 @@ test("generateServicesTFVars maps correctly", async () => {
               memory: "2Gi",
             },
             name: "generate-service-test",
-            ports:
-              [{
-                name: "h2c",
-                port: 8080,
-              }],
-            
+            port: {
+              name: "h2c",
+              port: 8080,
+            },
+
             secret_files: {},
             startup: {
               failure_threshold: 20,
@@ -182,7 +180,6 @@ test("generateServicesTFVars maps correctly", async () => {
               memory: "512Mi",
             },
             name: "generate-service-test-sidecar",
-            ports: [],
             secret_files: {},
             startup: {
               failure_threshold: 4,
