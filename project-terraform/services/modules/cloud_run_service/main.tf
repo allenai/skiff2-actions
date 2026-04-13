@@ -120,14 +120,14 @@ resource "google_cloud_run_v2_service" "service" {
           for key, path in try(container.secret_files, {}) :
           "${container.name}-${key}" => {
             container = container.name
-            key       = replace(key, "_", "-")
+            key       = key
             path      = path
           }
         }
       ]...)
 
       content {
-        name = lower("${volumes.value.container}-${volumes.value.key}")
+        name = lower("${volumes.value.container}-${replace(volumes.value.key, "_", "-")}")
 
         secret {
           secret = "${var.deployment_environment}-${volumes.value.container}-${volumes.value.key}"
