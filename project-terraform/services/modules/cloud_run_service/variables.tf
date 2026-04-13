@@ -79,6 +79,12 @@ variable "allow_unauthenticated" {
   default = false
 }
 
+variable "allowed_principals" {
+  description = "GCP IAM members granted roles/iap.httpsResourceAccessor on this service. Ignored when allow_unauthenticated is true."
+  type        = list(string)
+  default     = ["domain:allenai.org"]
+}
+
 variable "allow_delete" {
   type = bool
 }

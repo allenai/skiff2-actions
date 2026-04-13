@@ -173,10 +173,8 @@ resource "google_cloud_run_v2_service_iam_member" "iap_invoker" {
 
 data "google_iam_policy" "admin" {
   binding {
-    role = "roles/iap.httpsResourceAccessor"
-    members = [
-      var.allow_unauthenticated ? "allUsers" : "domain:allenai.org"
-    ]
+    role    = "roles/iap.httpsResourceAccessor"
+    members = var.allow_unauthenticated ? ["allUsers"] : var.allowed_principals
   }
 }
 

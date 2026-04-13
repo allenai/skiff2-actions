@@ -58,6 +58,22 @@ export const ServiceConfigSchema = z.strictObject({
     }),
   sidecars: z.array(ContainerConfigSchema).optional(),
   allowUnauthenticated: z.boolean().optional().default(false),
+  allowedPrincipals: z
+    .array(
+      z
+        .string()
+        .min(1)
+        .refine((p) => p !== "allUsers", {
+          message:
+            "Use allowUnauthenticated: true instead of allUsers in allowedPrincipals.",
+        }),
+    )
+    .optional()
+    .default(["domain:allenai.org"])
+    .meta({
+      description:
+        "GCP IAM members allowed to access this service via IAP (e.g. 'domain:allenai.org', 'user:alice@example.com', 'group:team@example.com', 'allAuthenticatedUsers'). Defaults to ['domain:allenai.org']. Ignored when allowUnauthenticated is true.",
+    }),
   allowDelete: z.boolean().optional(),
   customDomains: z.array(z.string()).optional().default([]),
   machine: MachineConfigSchema.optional().prefault({}),

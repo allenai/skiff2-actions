@@ -107,6 +107,7 @@ export interface ServiceEntry {
 
   image_tag: string;
   allow_unauthenticated: boolean;
+  allowed_principals: string[];
   allow_delete: boolean;
   min_instances: number;
   max_instances: number;
@@ -162,6 +163,7 @@ function mapService(
     containers: [...mappedServices, ...sidecarContainers],
     image_tag: imageTag,
     allow_unauthenticated: serviceConfig.allowUnauthenticated,
+    allowed_principals: serviceConfig.allowedPrincipals,
     allow_delete: isLongLived
       ? (serviceConfig.allowDelete ?? false)  // prod/long-lived: protected unless explicitly true
       : (serviceConfig.allowDelete ?? true),  // ephemeral: deletable unless explicitly false
