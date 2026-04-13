@@ -67,7 +67,6 @@ runs:
       working-directory: ${{ github.action_path }}/../../project-terraform/infra
       run: |
         if [ "${{ inputs.command }}" = "apply" ]; then
-          terraform apply -target=google_compute_url_map.default -input=false -auto-approve
           terraform apply -input=false -auto-approve
         else
           terraform plan -input=false
