@@ -21,7 +21,7 @@ inputs:
   use_classic_load_balancer:
     description: "Use the Classic Application Load Balancer instead of the Global Application Load Balancer"
     required: false
-    default: true
+    default: false
 
 outputs:
   default_url:
