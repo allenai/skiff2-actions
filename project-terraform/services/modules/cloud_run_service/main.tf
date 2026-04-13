@@ -106,7 +106,7 @@ resource "google_cloud_run_v2_service" "service" {
           for_each = containers.value.secret_files
 
           content {
-            name       = lower(replace(volume_mounts.key, "_", "-"))
+            name       = lower(replace("${containers.value.name}-${volume_mounts.key}", "_", "-"))
             mount_path = dirname(volume_mounts.value)
           }
         }
@@ -115,17 +115,26 @@ resource "google_cloud_run_v2_service" "service" {
 
     # Secret file volumes
     dynamic "volumes" {
-      for_each = flatten([for key, value in var.service_containers : value.secret_files if value.secret_files != null && length(value.secret_files) > 0])
+      for_each = merge([
+        for container in var.service_containers : {
+          for key, path in try(container.secret_files, {}) :
+          "${container.name}-${key}" => {
+            container = container.name
+            key       = replace(key, "_", "-")
+            path      = path
+          }
+        }
+      ]...)
 
       content {
-        name = lower(replace(volumes.key, "_", "-"))
+        name = lower("${volumes.value.container}-${volumes.value.key}")
 
         secret {
-          secret = "${var.deployment_environment}-${containers.value.name}-${replace(volumes.key, "_", "-")}"
+          secret = "${var.deployment_environment}-${volumes.value.container}-${volumes.value.key}"
 
           items {
             version = "latest"
-            path    = basename(volumes.value)
+            path    = basename(volumes.value.path)
           }
         }
       }
