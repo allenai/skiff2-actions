@@ -68,11 +68,11 @@ runs:
       run: |
         if [ "${{ inputs.command }}" = "apply" ]; then
           if terraform state show google_compute_url_map.default &>/dev/null; then
-            # for existing project: update url map first
-            terraform apply -target=google_compute_url_map.default -input=false -auto-approve
+            # for existing project: update url map first (allow failure, full apply follows)
+            terraform apply -target=google_compute_url_map.default -input=false -auto-approve || true
           else
-            # on new project: ensure backend exists first
-            terraform apply -target=module.lb-http.google_compute_backend_service.default -input=false -auto-approve
+            # on new project: ensure backend exists first (allow failure, full apply follows)
+            terraform apply -target=module.lb-http.google_compute_backend_service.default -input=false -auto-approve || true
           fi
           terraform apply -input=false -auto-approve
         else

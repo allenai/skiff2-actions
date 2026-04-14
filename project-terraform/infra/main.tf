@@ -123,6 +123,9 @@ resource "google_compute_region_network_endpoint_group" "custom_domain" {
   cloud_run {
     service = each.value
   }
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 # URL Map

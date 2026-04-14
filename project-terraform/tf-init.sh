@@ -13,17 +13,18 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+SHARED_ACTIONS_DIR="$REPO_ROOT/shared-actions"
 
 if [ $# -lt 2 ]; then
-    echo "Usage: $0 <org/repo> <project-name> [infra|services]"
+    echo "Usage: $0 <org/repo> <project-name>"
     echo ""
     echo "This script will:"
     echo "  1. Fetch skiff2.json from the repo (via gh CLI)"
-    echo "  2. Generate generated.auto.tfvars.json"
+    echo "  2. Generate generated.auto.tfvars.json via shared-actions TS scripts"
     echo "  3. Run terraform init with the correct backend bucket"
     echo "  4. Select the appropriate workspace (services component only)"
     echo ""
-    echo "Prerequisites: gh CLI authenticated, terraform installed"
+    echo "Prerequisites: gh CLI authenticated, terraform installed, node >= 24"
     exit 1
 fi
 
@@ -50,9 +51,15 @@ fi
 echo "==> skiff2.json contents:"
 echo "$SKIFF2_JSON" | jq .
 
-# Write the fetched skiff2.json to a temp file
+# Write the fetched skiff2.json to a temp dir (simulates GITHUB_WORKSPACE)
 TMPDIR_PATH=$(mktemp -d)
 echo "$SKIFF2_JSON" > "$TMPDIR_PATH/skiff2.json"
+
+# Install shared-actions dependencies
+echo ""
+echo "==> Installing shared-actions dependencies..."
+cd "$SHARED_ACTIONS_DIR"
+npm ci --silent
 
 for COMPONENT in infra services; do
     echo ""
@@ -62,98 +69,28 @@ for COMPONENT in infra services; do
 
     TF_DIR="$REPO_ROOT/project-terraform/$COMPONENT"
 
-    # Generate tfvars via Node
+    # Generate tfvars via the same TS scripts used by GitHub Actions
     echo "==> Generating tfvars for $COMPONENT..."
 
-    cd "$REPO_ROOT/shared-actions"
-
     if [ "$COMPONENT" = "infra" ]; then
-        # Infra: build services for ALL environments
-        SERVICES_JSON=$(echo "$SKIFF2_JSON" | jq --arg repo "$REPO_NAME" '
-            (.environments // ["main"]) as $environments |
-            [
-                $environments[] as $branch |
-                ($branch | gsub("[^a-zA-Z0-9._-]"; "-")) as $sanitized |
-                (if $branch == "main" then "prod" else $sanitized end) as $dep_env |
-                .services[] | select(.deploy != false) |
-                {
-                    key: (if $branch == "main" then .name else ($dep_env + "-" + .name) end),
-                    value: {
-                        name: .name,
-                        container_name: ($repo + "-" + .name),
-                        secondary_container_name: (if .secondaryImage then ($repo + "-" + .secondaryImage) else null end),
-                        allow_unauthenticated: (.allowUnauthenticated // false),
-                        allow_delete: (.allowDelete // false),
-                        secret_files: (.secretFiles // {}),
-                        custom_domains: (if $branch == "main" then (.customDomains // []) else [] end),
-                        image_tag: $sanitized,
-                        deployment_environment: $dep_env
-                    }
-                }
-            ] | from_entries
-        ')
-
-        DEFAULT_SERVICE=$(echo "$SKIFF2_JSON" | jq -r '
-            (.services[] | select(.isRootService == true) | .name) //
-            (.services[0] | .name)
-        ')
-
-        jq -n \
-            --arg project_id "$PROJECT_ID" \
-            --arg region "us-west1" \
-            --arg default_service "$DEFAULT_SERVICE" \
-            --argjson services "$SERVICES_JSON" \
-            '{
-                project_id: $project_id,
-                region: $region,
-                default_service: $default_service,
-                services: $services
-            }' > "$TF_DIR/generated.auto.tfvars.json"
+        GITHUB_WORKSPACE="$TMPDIR_PATH" \
+        TERRAFORM_DIR="$TF_DIR" \
+        INPUT_CONFIG_FILE="skiff2.json" \
+        INPUT_PROJECT_ID="$PROJECT_ID" \
+        INPUT_REGION="us-west1" \
+        INPUT_USE_CLASSIC_LOAD_BALANCER="false" \
+        node "$SHARED_ACTIONS_DIR/deploy-infra/generate-infra-tfvars.ts"
     else
-        # Services: generate via Node action
         GITHUB_WORKSPACE="$TMPDIR_PATH" \
         TERRAFORM_DIR="$TF_DIR" \
         INPUT_CONFIG_FILE="skiff2.json" \
         INPUT_PROJECT_ID="$PROJECT_ID" \
         INPUT_REGION="us-west1" \
         INPUT_REPO_NAME="$REPO_NAME" \
+        INPUT_ENVIRONMENT="main" \
         INPUT_SERVICES="" \
         INPUT_DEPLOY_TAG="main" \
-        node "./deploy-${COMPONENT}/index.ts" || {
-            echo ""
-            echo "Note: generate-${COMPONENT}-tfvars.ts uses @actions/core which may fail outside GitHub Actions."
-            echo "Falling back to manual tfvars generation..."
-
-            SERVICES_JSON=$(echo "$SKIFF2_JSON" | jq --arg repo "$REPO_NAME" '
-                [
-                    .services[] | select(.deploy != false) |
-                    {
-                        key: .name,
-                        value: {
-                            name: .name,
-                            container_name: ($repo + "-" + .name),
-                            secondary_container_name: (if .secondaryImage then ($repo + "-" + .secondaryImage) else null end),
-                            allow_unauthenticated: (.allowUnauthenticated // false),
-                            allow_delete: (.allowDelete // false),
-                            secret_files: (.secretFiles // {}),
-                            custom_domains: (.customDomains // []),
-                            image_tag: "main",
-                            deployment_environment: "prod"
-                        }
-                    }
-                ] | from_entries
-            ')
-
-            jq -n \
-                --arg project_id "$PROJECT_ID" \
-                --arg region "us-west1" \
-                --argjson services "$SERVICES_JSON" \
-                '{
-                    project_id: $project_id,
-                    region: $region,
-                    services: $services
-                }' > "$TF_DIR/generated.auto.tfvars.json"
-        }
+        node "$SHARED_ACTIONS_DIR/deploy-services/index.ts"
     fi
 
     echo ""
