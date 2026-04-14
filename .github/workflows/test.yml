@@ -1,0 +1,22 @@
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  shared-actions-unit-test:
+    name: Unit Test Shared Actions
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./shared-actions
+    steps:
+      - uses: "actions/checkout@v6"
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+
+      - name: Install dependencies
+        run: npm ci
