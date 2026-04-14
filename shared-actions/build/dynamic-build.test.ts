@@ -18,6 +18,7 @@ vi.mock("node:fs/promises");
 
 beforeEach(() => {
   vol.reset();
+  vi.unstubAllEnvs();
 
   const tmpDir = fs.mkdtempSync("/temp-context-").toString();
   const tmpName = path.join(tmpDir, ".tmpname-vi");
