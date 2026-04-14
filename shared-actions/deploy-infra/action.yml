@@ -67,12 +67,13 @@ runs:
       working-directory: ${{ github.action_path }}/../../project-terraform/infra
       run: |
         if [ "${{ inputs.command }}" = "apply" ]; then
+          # Pre-create backends before the URL map references them (handles new branch envs
+          # and custom domains). Allow failure: GCP rejects backend deletion while the URL
+          # map still references it — the URL map step removes the ref, full apply retries.
+          terraform apply -target=module.lb-http.google_compute_backend_service.default -input=false -auto-approve || true
           if terraform state show google_compute_url_map.default &>/dev/null; then
-            # for existing project: update url map first
+            # for existing project: update url map (adds new refs, removes old refs)
             terraform apply -target=google_compute_url_map.default -input=false -auto-approve
-          else
-            # on new project: ensure backend exists first
-            terraform apply -target=module.lb-http.google_compute_backend_service.default -input=false -auto-approve
           fi
           terraform apply -input=false -auto-approve
         else
