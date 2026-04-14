@@ -124,6 +124,7 @@ test("generateServicesTFVars maps correctly", async () => {
       "generate-service-test": {
         allow_delete: true,
         allow_unauthenticated: true,
+        allowed_principals: ["domain:allenai.org"],
         containers: [
           {
             container_name: "skiff-commodore-fake-generate-service-test",
