@@ -51,5 +51,6 @@ module "cloud_run_service" {
   max_instances          = each.value.max_instances
   allow_delete           = each.value.allow_delete
   allow_unauthenticated  = each.value.allow_unauthenticated
+  allowed_principals     = each.value.allowed_principals
 }
 

@@ -60,6 +60,7 @@ variable "services" {
     max_instances         = number
     allow_delete          = bool
     allow_unauthenticated = bool
+    allowed_principals    = list(string)
   }))
 }
 
