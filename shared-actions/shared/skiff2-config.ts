@@ -99,6 +99,7 @@ export const BuildConfigSchema = z.strictObject({
     .min(1, "At least one service is required"),
   remoteServices: z.array(RemoteServiceConfigSchema).optional(),
   $schema: z.url().optional(),
+  enableCdn: z.boolean().optional(),
 });
 
 export type ServiceConfig = z.infer<typeof ServiceConfigSchema>;

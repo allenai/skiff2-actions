@@ -73,7 +73,8 @@ async function main() {
     default_service: defaultServiceName,
     branch_environments: branchEnvironments,
     custom_domain_mappings: customDomainMappings,
-    use_classic_load_balancer: useClassicLoadBalancer
+    use_classic_load_balancer: useClassicLoadBalancer,
+    enable_cdn: config.enableCdn,
   };
 
   const tfvarsPath = resolve(terraformDir, "generated.auto.tfvars.json");
