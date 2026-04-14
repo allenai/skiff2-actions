@@ -4,7 +4,6 @@ import { readFile } from "fs/promises";
 import { dirname, resolve } from "path";
 import {
   BuildConfigSchema,
-  type ServiceConfig,
   type BuildConfig,
   type ContainerConfig,
 } from "../shared/skiff2-config.ts";

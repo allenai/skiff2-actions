@@ -243,6 +243,7 @@ test("builds with sidecars and multiple services", async () => {
         liveness: {},
         deploy: true,
         httpVersion: "1",
+        secondaryImage: 'serviceTwo',
         sidecars: [
           {
             name: "sidecar",
@@ -274,7 +275,7 @@ test("builds with sidecars and multiple services", async () => {
         },
         startup: {},
         liveness: {},
-        deploy: true,
+        deploy: false,
         httpVersion: "1",
       },
     ],
