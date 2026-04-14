@@ -1,14 +1,17 @@
 import { fs, vol } from "memfs";
-import type { ServiceConfig } from "../shared/skiff2-config.ts";
+import type { BuildConfig, ServiceConfig } from "../shared/skiff2-config.ts";
 import {
   getInputs,
   buildDockerArgs,
   type BuildContext,
+  main,
 } from "./dynamic-build.ts";
-import { test, vi, expect, beforeEach } from "vitest";
+import { test, vi, expect, beforeEach, assert } from "vitest";
 import { TempFileContext } from "./secrets.ts";
-import path from "path";
+import path, { resolve } from "path";
 import { stubGithubActionInput } from "../test-util/stub-github-action-input.ts";
+import * as exec from "@actions/exec";
+import * as core from "@actions/core";
 
 vi.mock("node:fs");
 vi.mock("node:fs/promises");
@@ -100,6 +103,8 @@ const getFakeServiceConfig = () =>
     },
     startup: {},
     liveness: {},
+    deploy: true,
+    httpVersion: "1",
   }) satisfies ServiceConfig;
 
 test("buildDockerArgs maps correctly", () => {
@@ -183,4 +188,133 @@ test("buildDockerArgs does not include push when shouldPush==false", () => {
   const args = buildDockerArgs(testService, testContext, ".", ["fake-tag"]);
 
   expect(args).not.toContain("--push");
+});
+
+test("builds with sidecars and multiple services", async () => {
+  const execSpy = vi
+    .spyOn(exec, "exec")
+    .mockImplementation((commandLine, args, options) => {
+      return Promise.resolve(0);
+    });
+
+  vi.spyOn(core, "setFailed").mockImplementation((message) => {
+    console.error(message);
+
+    if (message instanceof Error) {
+      throw message;
+    } else {
+      throw new Error(message);
+    }
+  });
+
+  const CONFIG_FILE_NAME = "fake-build-config.json";
+  const CONFIG_FILE_DIRECTORY = "/test";
+  const configPath = resolve(CONFIG_FILE_DIRECTORY, CONFIG_FILE_NAME);
+
+  stubGithubActionInput("config_file", configPath);
+  stubGithubActionInput("registry", "fake-docker-registry");
+  stubGithubActionInput("project_id", "fake-skiff-project");
+  stubGithubActionInput("repo_name", "skiff-commodore-fake");
+  stubGithubActionInput("commit_sha", "SHA");
+  stubGithubActionInput("branch_name", "branch");
+  stubGithubActionInput("push", "false");
+
+  const buildConfig = {
+    projectName: "test-project",
+    environments: ["main"],
+    services: [
+      {
+        name: "service",
+        cwd: "/foo",
+        isRootService: true,
+        dockerFile: ".Dockerfile",
+        allowUnauthenticated: false,
+        allowDelete: false,
+        secretFiles: {},
+        customDomains: [],
+        machine: {
+          minInstances: 1,
+          maxInstances: 10,
+          memory: "512Mi",
+          cpu: 1,
+          cpuIdle: true,
+        },
+        startup: {},
+        liveness: {},
+        deploy: true,
+        httpVersion: "1",
+        secondaryImage: 'serviceTwo',
+        sidecars: [
+          {
+            name: "sidecar",
+            cwd: "sidecar",
+            secretFiles: {},
+            machine: {
+              memory: "1",
+              cpu: 1,
+              cpuIdle: true,
+            },
+          },
+        ],
+      },
+      {
+        name: "serviceTwo",
+        cwd: "/two",
+        isRootService: true,
+        dockerFile: ".Dockerfile",
+        allowUnauthenticated: false,
+        allowDelete: false,
+        secretFiles: {},
+        customDomains: [],
+        machine: {
+          minInstances: 1,
+          maxInstances: 10,
+          memory: "512Mi",
+          cpu: 1,
+          cpuIdle: true,
+        },
+        startup: {},
+        liveness: {},
+        deploy: false,
+        httpVersion: "1",
+      },
+    ],
+  } satisfies BuildConfig;
+
+  fs.mkdirSync(CONFIG_FILE_DIRECTORY);
+  fs.writeFileSync(resolve(configPath), JSON.stringify(buildConfig));
+  await main();
+
+  expect(execSpy).toHaveBeenCalledTimes(3);
+  expect(execSpy).toHaveBeenCalledWith("docker", [
+    "buildx",
+    "build",
+    "--tag",
+    "fake-docker-registry/fake-skiff-project/skiff-commodore-fake-service:SHA",
+    "--tag",
+    "fake-docker-registry/fake-skiff-project/skiff-commodore-fake-service:branch",
+    "--file",
+    "/foo/.Dockerfile",
+    "/foo",
+  ]);
+  expect(execSpy).toHaveBeenCalledWith("docker", [
+    "buildx",
+    "build",
+    "--tag",
+    "fake-docker-registry/fake-skiff-project/skiff-commodore-fake-sidecar:SHA",
+    "--tag",
+    "fake-docker-registry/fake-skiff-project/skiff-commodore-fake-sidecar:branch",
+    "/test/sidecar",
+  ]);
+  expect(execSpy).toHaveBeenCalledWith("docker", [
+    "buildx",
+    "build",
+    "--tag",
+    "fake-docker-registry/fake-skiff-project/skiff-commodore-fake-serviceTwo:SHA",
+    "--tag",
+    "fake-docker-registry/fake-skiff-project/skiff-commodore-fake-serviceTwo:branch",
+    "--file",
+    "/two/.Dockerfile",
+    "/two",
+  ]);
 });

@@ -4,8 +4,8 @@ import { readFile } from "fs/promises";
 import { dirname, resolve } from "path";
 import {
   BuildConfigSchema,
-  type ServiceConfig,
   type BuildConfig,
+  type ContainerConfig,
 } from "../shared/skiff2-config.ts";
 import {
   resolveSecretEnv,
@@ -50,7 +50,7 @@ function getBranchTag(branchName: string): string {
 }
 
 function buildImageTags(
-  service: ServiceConfig,
+  service: ContainerConfig,
   context: BuildContext,
 ): string[] {
   const serviceName = `${context.repoName}-${service.name}`;
@@ -66,7 +66,7 @@ function buildImageTags(
 }
 
 export function buildDockerArgs(
-  service: ServiceConfig,
+  service: ContainerConfig,
   context: BuildContext,
   configDir: string,
   tags: string[],
@@ -200,7 +200,7 @@ async function waitForDependencies(
 }
 
 async function buildService(
-  service: ServiceConfig,
+  service: ContainerConfig,
   context: BuildContext,
   configDir: string,
   state: BuildState,
@@ -234,7 +234,7 @@ async function buildService(
 }
 
 async function buildServiceWithDependencies(
-  service: ServiceConfig,
+  service: ContainerConfig,
   context: BuildContext,
   configDir: string,
   state: BuildState,
@@ -289,9 +289,11 @@ async function buildAll(
   }
 
   core.info(`Building ${services.length} services`);
+  
+  const buildTargets = services.flatMap(service => [service, ...service.sidecars ?? []])
 
   // Build services, respecting dependencies
-  const buildPromises = services.map((service) =>
+  const buildPromises = buildTargets.map((service) =>
     buildServiceWithDependencies(service, context, configDir, state),
   );
 
