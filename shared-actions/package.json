@@ -6,7 +6,8 @@
     "dynamic-build": "node ./build/index.ts",
     "generate-infra-tfvars": "node ./deploy-infra/generate-infra-tfvars.ts",
     "generate-services-tfvars": "node ./deploy-services/index.ts",
-    "create-json-schema": "node shared/get-skiff2-config-json-schema.ts"
+    "create-json-schema": "node shared/get-skiff2-config-json-schema.ts",
+    "test": "vitest"
   },
   "dependencies": {
     "@actions/core": "^1.10.1",
