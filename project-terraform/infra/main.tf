@@ -253,8 +253,20 @@ module "lb-http" {
 
   backends = {
     for key, neg_id in local.all_backends : key => {
-      protocol        = "HTTPS"
-      enable_cdn      = var.enable_cdn
+      protocol = "HTTPS"
+
+      enable_cdn = var.enable_cdn
+      cdn_policy = {
+        cache_mode        = "CACHE_ALL_STATIC"
+        client_ttl        = 3600
+        default_ttl       = 3600
+        max_ttl           = 86400
+        serve_while_stale = 86400
+        cache_key_policy = {
+          include_protocol = false
+        }
+      }
+
       security_policy = data.google_compute_security_policy.cloud_armor.self_link
 
       log_config = {

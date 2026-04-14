@@ -32,6 +32,6 @@ variable "custom_domain_mappings" {
 
 variable "enable_cdn" {
   description = "Determines if Google Cloud CDN is enabled for all backends"
-  type        = optional(bool)
+  type        = bool
   default     = true
 }
