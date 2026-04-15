@@ -22,6 +22,7 @@ const fakeConfig = {
       deploy: true,
       isRootService: true,
       allowUnauthenticated: true,
+      allowedPrincipals: ["domain:allenai.org"],
       allowDelete: true,
       secretFiles: {},
       customDomains: [],
@@ -78,6 +79,7 @@ const fakeConfig = {
       httpVersion: "2",
       isRootService: false,
       allowUnauthenticated: false,
+      allowedPrincipals: ["domain:allenai.org"],
       allowDelete: false,
       secretFiles: {},
       customDomains: [],
@@ -130,6 +132,7 @@ test("generateServicesTFVars maps correctly", async () => {
       "generate-service-test": {
         allow_delete: true,
         allow_unauthenticated: true,
+        allowed_principals: ["domain:allenai.org"],
         containers: [
           {
             container_name: "skiff-commodore-fake-generate-service-test",
