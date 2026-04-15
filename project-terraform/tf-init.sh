@@ -68,47 +68,14 @@ for COMPONENT in infra services; do
     cd "$REPO_ROOT/shared-actions"
 
     if [ "$COMPONENT" = "infra" ]; then
-        # Infra: build services for ALL environments
-        SERVICES_JSON=$(echo "$SKIFF2_JSON" | jq --arg repo "$REPO_NAME" '
-            (.environments // ["main"]) as $environments |
-            [
-                $environments[] as $branch |
-                ($branch | gsub("[^a-zA-Z0-9._-]"; "-")) as $sanitized |
-                (if $branch == "main" then "prod" else $sanitized end) as $dep_env |
-                .services[] | select(.deploy != false) |
-                {
-                    key: (if $branch == "main" then .name else ($dep_env + "-" + .name) end),
-                    value: {
-                        name: .name,
-                        container_name: ($repo + "-" + .name),
-                        secondary_container_name: (if .secondaryImage then ($repo + "-" + .secondaryImage) else null end),
-                        allow_unauthenticated: (.allowUnauthenticated // false),
-                        allow_delete: (.allowDelete // false),
-                        secret_files: (.secretFiles // {}),
-                        custom_domains: (if $branch == "main" then (.customDomains // []) else [] end),
-                        image_tag: $sanitized,
-                        deployment_environment: $dep_env
-                    }
-                }
-            ] | from_entries
-        ')
-
-        DEFAULT_SERVICE=$(echo "$SKIFF2_JSON" | jq -r '
-            (.services[] | select(.isRootService == true) | .name) //
-            (.services[0] | .name)
-        ')
-
-        jq -n \
-            --arg project_id "$PROJECT_ID" \
-            --arg region "us-west1" \
-            --arg default_service "$DEFAULT_SERVICE" \
-            --argjson services "$SERVICES_JSON" \
-            '{
-                project_id: $project_id,
-                region: $region,
-                default_service: $default_service,
-                services: $services
-            }' > "$TF_DIR/generated.auto.tfvars.json"
+        # Infra: generate via the same Node action used in CI
+        GITHUB_WORKSPACE="$TMPDIR_PATH" \
+        TERRAFORM_DIR="$TF_DIR" \
+        INPUT_CONFIG_FILE="skiff2.json" \
+        INPUT_PROJECT_ID="$PROJECT_ID" \
+        INPUT_REGION="us-west1" \
+        INPUT_USE_CLASSIC_LOAD_BALANCER="false" \
+        node "./deploy-infra/generate-infra-tfvars.ts"
     else
         # Services: generate via Node action
         GITHUB_WORKSPACE="$TMPDIR_PATH" \
