@@ -18,6 +18,7 @@ vi.mock("node:fs/promises");
 
 beforeEach(() => {
   vol.reset();
+  vi.unstubAllEnvs();
 
   const tmpDir = fs.mkdtempSync("/temp-context-").toString();
   const tmpName = path.join(tmpDir, ".tmpname-vi");
@@ -86,6 +87,7 @@ const getFakeServiceConfig = () =>
     isRootService: true,
     dockerFile: ".Dockerfile",
     allowUnauthenticated: false,
+    allowedPrincipals: ["domain:allenai.org"],
     allowDelete: false,
     secretFiles: { "run/secret/secret_file": "secret_file" },
     extraBuildArgs: [
@@ -229,6 +231,7 @@ test("builds with sidecars and multiple services", async () => {
         isRootService: true,
         dockerFile: ".Dockerfile",
         allowUnauthenticated: false,
+        allowedPrincipals: ["domain:allenai.org"],
         allowDelete: false,
         secretFiles: {},
         customDomains: [],
@@ -263,6 +266,7 @@ test("builds with sidecars and multiple services", async () => {
         isRootService: true,
         dockerFile: ".Dockerfile",
         allowUnauthenticated: false,
+        allowedPrincipals: ["domain:allenai.org"],
         allowDelete: false,
         secretFiles: {},
         customDomains: [],

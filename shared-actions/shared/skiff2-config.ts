@@ -86,14 +86,21 @@ export const ServiceConfigSchema = z.strictObject({
     }),
 });
 
+export const RemoteServiceConfigSchema = ServiceConfigSchema.pick({
+  name: true,
+  customDomains: true,
+})
+
 export const BuildConfigSchema = z.strictObject({
   projectName: z.string().min(1).optional(),
   environments: z.array(z.string().min(1)).optional(),
   services: z
     .array(ServiceConfigSchema)
     .min(1, "At least one service is required"),
+  remoteServices: z.array(RemoteServiceConfigSchema).optional(),
   $schema: z.url().optional(),
 });
 
 export type ServiceConfig = z.infer<typeof ServiceConfigSchema>;
+export type RemoteServiceConfig = z.infer<typeof RemoteServiceConfigSchema>;
 export type BuildConfig = z.infer<typeof BuildConfigSchema>;
