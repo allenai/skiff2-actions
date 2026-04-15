@@ -9,7 +9,7 @@ const mapCustomDomainsFromService = (
   ): Record<string, string> => {
     const domainMappings: Record<string, string> = {};
     for (const service of serviceConfigs) {
-      if (service.deploy === false) continue;
+      if ('deploy' in service && service.deploy === false) continue;
       for (const domain of service.customDomains) {
         domainMappings[domain] = `prod-${service.name}`;
       }

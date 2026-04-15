@@ -95,7 +95,6 @@ const fakeConfig = {
   remoteServices: [
     {
       name: "remoteService",
-      deploy: true,
       customDomains: [],
     }
   ]

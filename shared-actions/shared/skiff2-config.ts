@@ -88,7 +88,6 @@ export const ServiceConfigSchema = z.strictObject({
 
 export const RemoteServiceConfigSchema = ServiceConfigSchema.pick({
   name: true,
-  deploy: true,
   customDomains: true,
 })
 
