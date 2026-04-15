@@ -93,9 +93,6 @@ resource "google_compute_region_network_endpoint_group" "default_service" {
   cloud_run {
     service = "prod-${var.default_service}"
   }
-  lifecycle {
-    create_before_destroy = true
-  }
 }
 
 # Explicit NEGs for branch default services (branch bare domain routing)
@@ -107,9 +104,6 @@ resource "google_compute_region_network_endpoint_group" "branch_default" {
   project               = var.project_id
   cloud_run {
     service = "${each.value}-${var.default_service}"
-  }
-  lifecycle {
-    create_before_destroy = true
   }
 }
 
@@ -195,6 +189,9 @@ resource "google_compute_url_map" "default" {
       default_service = "projects/${var.project_id}/global/backendServices/default-lb-backend-custom-${replace(path_matcher.key, ".", "-")}"
     }
   }
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 # Wildcard certs and cert map are managed by skiff2.
@@ -228,42 +225,114 @@ resource "google_certificate_manager_certificate_map_entry" "custom" {
 
 
 # Load Balancer
-# 
-module "lb-http" {
-  source  = "GoogleCloudPlatform/lb-http/google//modules/serverless_negs"
-  version = "~> 12.0"
+#
+# Previously provisioned via the GoogleCloudPlatform/lb-http//serverless_negs
+# module. Inlined here for clarity and to drop an indirection. The `moved`
+# blocks below re-parent the existing state entries so `terraform apply` is
+# a no-op against GCP.
+resource "google_compute_backend_service" "default" {
+  provider = google-beta
+  for_each = local.all_backends
 
-  name    = "default-lb"
   project = var.project_id
+  name    = "default-lb-backend-${each.key}"
 
   load_balancing_scheme = var.use_classic_load_balancer ? "EXTERNAL" : "EXTERNAL_MANAGED"
 
-  create_address = false
-  address        = data.google_compute_global_address.lb_ip.address
+  port_name = "http"
+  protocol  = "HTTPS"
 
-  ssl             = true
-  certificate_map = data.google_certificate_manager_certificate_map.default.id
-  https_redirect  = true
+  enable_cdn       = false
 
-  create_url_map = false
-  url_map        = google_compute_url_map.default.self_link
+  security_policy = data.google_compute_security_policy.cloud_armor.self_link
 
-  backends = {
-    for key, neg_id in local.all_backends : key => {
-      protocol        = "HTTPS"
-      enable_cdn      = false
-      security_policy = data.google_compute_security_policy.cloud_armor.self_link
-
-      log_config = {
-        enable      = true
-        sample_rate = 1.0
-      }
-
-      groups = [{ group = neg_id }]
-
-      iap_config = {
-        enable = false
-      }
-    }
+  backend {
+    group = each.value
   }
+
+  log_config {
+    enable      = true
+    sample_rate = 1.0
+  }
+
+  iap {
+    enabled = false
+  }
+}
+
+resource "google_compute_url_map" "https_redirect" {
+  project = var.project_id
+  name    = "default-lb-https-redirect"
+
+  default_url_redirect {
+    https_redirect         = true
+    redirect_response_code = "MOVED_PERMANENTLY_DEFAULT"
+    strip_query            = false
+  }
+}
+
+resource "google_compute_target_http_proxy" "default" {
+  project = var.project_id
+  name    = "default-lb-http-proxy"
+  url_map = google_compute_url_map.https_redirect.self_link
+}
+
+resource "google_compute_target_https_proxy" "default" {
+  project         = var.project_id
+  name            = "default-lb-https-proxy"
+  url_map         = google_compute_url_map.default.self_link
+  certificate_map = "//certificatemanager.googleapis.com/${data.google_certificate_manager_certificate_map.default.id}"
+  quic_override   = "NONE"
+}
+
+resource "google_compute_global_forwarding_rule" "http" {
+  provider              = google-beta
+  project               = var.project_id
+  name                  = "default-lb"
+  target                = google_compute_target_http_proxy.default.self_link
+  ip_address            = data.google_compute_global_address.lb_ip.address
+  port_range            = "80"
+  load_balancing_scheme = var.use_classic_load_balancer ? "EXTERNAL" : "EXTERNAL_MANAGED"
+}
+
+resource "google_compute_global_forwarding_rule" "https" {
+  provider              = google-beta
+  project               = var.project_id
+  name                  = "default-lb-https"
+  target                = google_compute_target_https_proxy.default.self_link
+  ip_address            = data.google_compute_global_address.lb_ip.address
+  port_range            = "443"
+  load_balancing_scheme = var.use_classic_load_balancer ? "EXTERNAL" : "EXTERNAL_MANAGED"
+}
+
+# State migration: preserve existing GCP resources by re-parenting them from
+# the removed `module.lb-http` into the inlined resources above.
+moved {
+  from = module.lb-http.google_compute_backend_service.default
+  to   = google_compute_backend_service.default
+}
+
+moved {
+  from = module.lb-http.google_compute_url_map.https_redirect[0]
+  to   = google_compute_url_map.https_redirect
+}
+
+moved {
+  from = module.lb-http.google_compute_target_http_proxy.default[0]
+  to   = google_compute_target_http_proxy.default
+}
+
+moved {
+  from = module.lb-http.google_compute_target_https_proxy.default[0]
+  to   = google_compute_target_https_proxy.default
+}
+
+moved {
+  from = module.lb-http.google_compute_global_forwarding_rule.http[0]
+  to   = google_compute_global_forwarding_rule.http
+}
+
+moved {
+  from = module.lb-http.google_compute_global_forwarding_rule.https[0]
+  to   = google_compute_global_forwarding_rule.https
 }
