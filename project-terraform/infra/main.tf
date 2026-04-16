@@ -116,12 +116,15 @@ resource "google_compute_region_network_endpoint_group" "branch_default" {
 # Explicit NEGs for custom domain mappings
 resource "google_compute_region_network_endpoint_group" "custom_domain" {
   for_each              = var.custom_domain_mappings
-  name                  = "${local.project_name}-custom-${replace(each.key, ".", "-")}-neg"
+  name                  = "${local.project_name}-custom-${each.value}-${replace(each.key, ".", "-")}-neg"
   network_endpoint_type = "SERVERLESS"
   region                = var.region
   project               = var.project_id
   cloud_run {
     service = each.value
+  }
+  lifecycle {
+    create_before_destroy = true
   }
 }
 
@@ -228,7 +231,7 @@ resource "google_certificate_manager_certificate_map_entry" "custom" {
 
 
 # Load Balancer
-# 
+#
 module "lb-http" {
   source  = "GoogleCloudPlatform/lb-http/google//modules/serverless_negs"
   version = "~> 12.0"
