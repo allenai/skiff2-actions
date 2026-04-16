@@ -52,13 +52,14 @@ locals {
   # Base domains for this project (e.g., "myapp.allen.ai")
   base_domains = { for key, domain in local.domain_families : key => "${local.project_name}.${domain}" }
 
-  # All backend NEG IDs, keyed by backend name
-  all_backends = merge(
-    { for key, neg in google_compute_region_network_endpoint_group.url_mask : "url-mask-${key}" => neg.id },
-    { "default" = google_compute_region_network_endpoint_group.default_service.id },
-    { for key, neg in google_compute_region_network_endpoint_group.branch_default : "branch-${key}" => neg.id },
-    { for key, neg in google_compute_region_network_endpoint_group.custom_domain : "custom-${replace(key, ".", "-")}" => neg.id },
-  )
+  # All backend NEG IDs, keyed by backend name. Constructed from var.backends
+  # (driven by skiff2.json via the deploy-infra action) rather than the NEG
+  # resources directly, so this doesn't need to be touched when the set of
+  # backend kinds changes.
+  all_backends = {
+    for key, cfg in var.backends :
+    key => "projects/${var.project_id}/regions/${var.region}/networkEndpointGroups/${cfg.neg_name}"
+  }
 }
 
 data "google_compute_global_address" "lb_ip" {
@@ -71,51 +72,18 @@ data "google_compute_security_policy" "cloud_armor" {
   project = var.project_id
 }
 
-# Create URL Mask NEGs for base service URL on each domain
-# <service>.project.domain to the matching Cloud Run service by name.
-resource "google_compute_region_network_endpoint_group" "url_mask" {
-  for_each              = local.domain_families
-  name                  = "${local.project_name}-${each.key}-neg"
+# Serverless NEGs — one per entry in var.backends. Each entry routes either to
+# a specific Cloud Run service (bare/custom/branch domains) or via a url_mask
+# (wildcard <service>.<domain> routing per domain family).
+resource "google_compute_region_network_endpoint_group" "default" {
+  for_each              = var.backends
+  name                  = each.value.neg_name
   network_endpoint_type = "SERVERLESS"
   region                = var.region
   project               = var.project_id
   cloud_run {
-    url_mask = "<service>.${local.base_domains[each.key]}"
-  }
-}
-
-# Explicit NEG for prod default service (bare domain routing)
-resource "google_compute_region_network_endpoint_group" "default_service" {
-  name                  = "${local.project_name}-default-${var.default_service}-neg"
-  network_endpoint_type = "SERVERLESS"
-  region                = var.region
-  project               = var.project_id
-  cloud_run {
-    service = "prod-${var.default_service}"
-  }
-}
-
-# Explicit NEGs for branch default services (branch bare domain routing)
-resource "google_compute_region_network_endpoint_group" "branch_default" {
-  for_each              = toset(var.branch_environments)
-  name                  = "${local.project_name}-${each.value}-default-${var.default_service}-neg"
-  network_endpoint_type = "SERVERLESS"
-  region                = var.region
-  project               = var.project_id
-  cloud_run {
-    service = "${each.value}-${var.default_service}"
-  }
-}
-
-# Explicit NEGs for custom domain mappings
-resource "google_compute_region_network_endpoint_group" "custom_domain" {
-  for_each              = var.custom_domain_mappings
-  name                  = "${local.project_name}-custom-${replace(each.key, ".", "-")}-neg"
-  network_endpoint_type = "SERVERLESS"
-  region                = var.region
-  project               = var.project_id
-  cloud_run {
-    service = each.value
+    service  = each.value.cloud_run_service
+    url_mask = each.value.url_mask
   }
 }
 
@@ -242,7 +210,7 @@ resource "google_compute_backend_service" "default" {
   port_name = "http"
   protocol  = "HTTPS"
 
-  enable_cdn       = false
+  enable_cdn = false
 
   security_policy = data.google_compute_security_policy.cloud_armor.self_link
 
@@ -258,6 +226,10 @@ resource "google_compute_backend_service" "default" {
   iap {
     enabled = false
   }
+
+  # local.all_backends references NEGs by constructed string rather than by
+  # resource attribute, so Terraform doesn't infer this dependency.
+  depends_on = [google_compute_region_network_endpoint_group.default]
 }
 
 resource "google_compute_url_map" "https_redirect" {

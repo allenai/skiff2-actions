@@ -29,3 +29,12 @@ variable "custom_domain_mappings" {
   type        = map(string)
   default     = {}
 }
+
+variable "backends" {
+  description = "Backend NEGs to create. Emitted by the deploy-infra action from skiff2.json. Keys here double as URL map backend suffixes (default-lb-backend-<key>)."
+  type = map(object({
+    neg_name          = string
+    cloud_run_service = optional(string)
+    url_mask          = optional(string)
+  }))
+}
