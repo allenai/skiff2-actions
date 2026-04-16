@@ -4,7 +4,7 @@
 data "google_secret_manager_secrets" "app_secrets" {
   for_each = toset([for key, container in var.service_containers : container.name])
 
-  filter = "name:${each.value}-"
+  filter = "name:global-${each.value}- OR name:${var.deployment_environment}-${each.value}-"
 }
 
 resource "google_cloud_run_v2_service" "service" {
@@ -92,8 +92,8 @@ resource "google_cloud_run_v2_service" "service" {
           # This allows users to override the general env variable with a more specific one, like .env files
           for_each = merge(tomap({
             for secret in data.google_secret_manager_secrets.app_secrets[containers.value.name].secrets :
-            trimprefix(secret.secret_id, "${containers.value.name}-") => secret.secret_id
-            if startswith(secret.secret_id, "${containers.value.name}-")
+            trimprefix(secret.secret_id, "global-${containers.value.name}-") => secret.secret_id
+            if startswith(secret.secret_id, "global-${containers.value.name}-")
             }),
             tomap({
               for secret in data.google_secret_manager_secrets.app_secrets[containers.value.name].secrets :
