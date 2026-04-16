@@ -93,9 +93,6 @@ resource "google_compute_region_network_endpoint_group" "default_service" {
   cloud_run {
     service = "prod-${var.default_service}"
   }
-  lifecycle {
-    create_before_destroy = true
-  }
 }
 
 # Explicit NEGs for branch default services (branch bare domain routing)
@@ -107,9 +104,6 @@ resource "google_compute_region_network_endpoint_group" "branch_default" {
   project               = var.project_id
   cloud_run {
     service = "${each.value}-${var.default_service}"
-  }
-  lifecycle {
-    create_before_destroy = true
   }
 }
 
@@ -228,7 +222,7 @@ resource "google_certificate_manager_certificate_map_entry" "custom" {
 
 
 # Load Balancer
-# 
+#
 module "lb-http" {
   source  = "GoogleCloudPlatform/lb-http/google//modules/serverless_negs"
   version = "~> 12.0"
