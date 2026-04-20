@@ -4,7 +4,7 @@
 data "google_secret_manager_secrets" "app_secrets" {
   for_each = toset([for key, container in var.service_containers : container.name])
 
-  filter = "name:${var.deployment_environment}-${each.value}-"
+  filter = "name:global-${each.value}- OR name:${var.deployment_environment}-${each.value}-"
 }
 
 resource "google_cloud_run_v2_service" "service" {
@@ -87,14 +87,26 @@ resource "google_cloud_run_v2_service" "service" {
         # Secrets must be named "<ENV_VAR>-<service-name>".
         # The prefix and hyphens are stripped/converted to produce the env var name.
         dynamic "env" {
-          for_each = data.google_secret_manager_secrets.app_secrets[containers.value.name].secrets
+          # Get secrets prefixed with <CONTAINER_NAME>- and <ENV>-<CONTAINER_NAME>- and merge them 
+          # They are ordered so that <ENV>-<CONTAINER_NAME>- takes priority over just <CONTAINER_NAME>-
+          # This allows users to override the general env variable with a more specific one, like .env files
+          for_each = merge(tomap({
+            for secret in data.google_secret_manager_secrets.app_secrets[containers.value.name].secrets :
+            trimprefix(secret.secret_id, "global-${containers.value.name}-") => secret.secret_id
+            if startswith(secret.secret_id, "global-${containers.value.name}-")
+            }),
+            tomap({
+              for secret in data.google_secret_manager_secrets.app_secrets[containers.value.name].secrets :
+              trimprefix(secret.secret_id, "${var.deployment_environment}-${containers.value.name}-") => secret.secret_id
+              if startswith(secret.secret_id, "${var.deployment_environment}-${containers.value.name}-")
+          }))
 
           content {
-            name = trimprefix(env.value.secret_id, "${var.deployment_environment}-${containers.value.name}-")
+            name = env.key
 
             value_source {
               secret_key_ref {
-                secret  = env.value.secret_id
+                secret  = env.value
                 version = "latest"
               }
             }
