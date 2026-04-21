@@ -76,6 +76,15 @@ runs:
       working-directory: ${{ github.action_path }}/../../project-terraform/services
       run: terraform init -backend-config="bucket=${{ inputs.project_id }}-tf-state"
 
+    - name: Migrate workspace (one-time)
+      shell: bash
+      working-directory: ${{ github.action_path }}/../
+      env:
+        INPUT_NEW_WORKSPACE: ${{ steps.transform.outputs.workspace }}
+        INPUT_ENVIRONMENT: ${{ inputs.environment }}
+        TERRAFORM_DIR: ${{ github.action_path }}/../../project-terraform/services
+      run: node ./migrate-services-workspace/index.ts
+
     - name: Select Terraform Workspace
       shell: bash
       working-directory: ${{ github.action_path }}/../../project-terraform/services
