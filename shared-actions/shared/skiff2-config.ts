@@ -8,7 +8,7 @@ export const ContainerMachineConfigSchema = z.strictObject({
 
 export const MachineConfigSchema = z.strictObject({
   ...ContainerMachineConfigSchema.shape,
-  minInstances: z.int().min(0).optional().default(1),
+  minInstances: z.int().min(0).optional().default(0),
   maxInstances: z.int().min(1).optional().default(10),
 });
 
@@ -48,14 +48,11 @@ export const ServiceConfigSchema = z.strictObject({
   ...ContainerConfigSchema.shape,
   deploy: z.boolean().optional().default(true),
   isRootService: z.boolean().optional(),
-  secondaryImage: z
-    .string()
-    .optional()
-    .meta({
-      deprecated: true,
-      description:
-        "To add another container to this service use sidecars instead.",
-    }),
+  secondaryImage: z.string().optional().meta({
+    deprecated: true,
+    description:
+      "To add another container to this service use sidecars instead.",
+  }),
   sidecars: z.array(ContainerConfigSchema).optional(),
   allowUnauthenticated: z.boolean().optional().default(false),
   allowedPrincipals: z
@@ -89,7 +86,7 @@ export const ServiceConfigSchema = z.strictObject({
 export const RemoteServiceConfigSchema = ServiceConfigSchema.pick({
   name: true,
   customDomains: true,
-})
+});
 
 export const BuildConfigSchema = z.strictObject({
   projectName: z.string().min(1).optional(),
