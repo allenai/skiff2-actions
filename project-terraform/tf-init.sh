@@ -172,6 +172,7 @@ for COMPONENT in infra services; do
     terraform init -backend-config="bucket=${PROJECT_ID}-tf-state"
 
     # Select workspace for services component
+    # TODO: update to use new workspace naming after migration to repoName workspaces is complete
     if [ "$COMPONENT" = "services" ]; then
         echo ""
         echo "==> Selecting default workspace..."
