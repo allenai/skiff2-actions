@@ -56,8 +56,8 @@ export async function migrateWorkspace(
     return { migrated: false, oldWorkspace, newWorkspace };
   }
 
-  // Check if old workspace exists and has state
-  if (await workspaceHasState(oldWorkspace)) {
+  // Check if old workspace doesn't exist or has no state
+  if (!await workspaceHasState(oldWorkspace)) {
     core.info(`⚠️ No '${oldWorkspace}' workspace or state, skipping migration`);
     return { migrated: false, oldWorkspace, newWorkspace };
   }
