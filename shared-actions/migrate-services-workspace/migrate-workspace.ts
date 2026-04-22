@@ -57,24 +57,18 @@ export async function migrateWorkspace(
   }
 
   // Check if old workspace exists and has state
-  const oldSelectResult = await terraform("workspace", "select", oldWorkspace);
-  if (oldSelectResult.exitCode !== 0) {
-    core.info(`⚠️ No '${oldWorkspace}' workspace, creating '${newWorkspace}'`);
-    await selectOrCreateWorkspace(newWorkspace);
-    return { migrated: false, oldWorkspace, newWorkspace };
-  }
-
-  const oldState = await terraform("state", "pull");
-  if (oldState.stdout.length < 10) {
-    core.info(`⚠️ No state in '${oldWorkspace}', creating '${newWorkspace}'`);
-    await selectOrCreateWorkspace(newWorkspace);
+  if (await workspaceHasState(oldWorkspace)) {
+    core.info(`⚠️ No '${oldWorkspace}' workspace or state, skipping migration`);
     return { migrated: false, oldWorkspace, newWorkspace };
   }
 
   // Perform migration
-  core.info(`🔄 Migrating state from '${oldWorkspace}' to '${newWorkspace}'`);
-  await selectOrCreateWorkspace(newWorkspace);
+  core.info(`🔄 Getting state from '${oldWorkspace}'`);
+  await selectOrCreateWorkspace(oldWorkspace);
+  const oldState = await terraform("state", "pull");
 
+  core.info(`🔄 Pushing state to '${newWorkspace}'`);
+  await selectOrCreateWorkspace(newWorkspace);
   const pushResult = await exec.exec("terraform", ["state", "push", "-"], {
     input: Buffer.from(oldState.stdout),
     ignoreReturnCode: true,
