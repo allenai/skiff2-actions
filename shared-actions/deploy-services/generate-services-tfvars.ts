@@ -69,7 +69,7 @@ export async function generateServicesTFVars() {
   core.info(`Generated terraform variables at: ${tfvarsPath}`);
   core.info(JSON.stringify(tfvars, null, 2));
 
-  const workspace = isMainBranch ? "default" : sanitizeBranchTag(targetBranch);
+  const workspace = `${sanitizeBranchTag(repoName)}--${sanitizeBranchTag(targetBranch)}`;
   core.setOutput("workspace", workspace);
 
   const projectName = projectId.replace(/^ai2-skiff2-/, "");
