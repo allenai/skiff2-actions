@@ -171,12 +171,13 @@ for COMPONENT in infra services; do
     cd "$TF_DIR"
     terraform init -backend-config="bucket=${PROJECT_ID}-tf-state"
 
-    # Select workspace for services component
-    # TODO: update to use new workspace naming after migration to repoName workspaces is complete
     if [ "$COMPONENT" = "services" ]; then
+        SANITIZED_REPO=$(echo "$REPO_NAME" | sed 's/[^a-zA-Z0-9._-]/-/g')
+        ENVIRONMENT="main"
+        WORKSPACE="${SANITIZED_REPO}--${ENVIRONMENT}"
         echo ""
-        echo "==> Selecting default workspace..."
-        terraform workspace select default
+        echo "==> Selecting workspace: $WORKSPACE"
+        terraform workspace select -or-create "$WORKSPACE"
     fi
 done
 
