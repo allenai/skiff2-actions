@@ -159,7 +159,7 @@ resource "google_cloud_run_v2_service" "service" {
       ]...)
 
       content {
-        name = lower("${volumes.value.container}-${replace(volumes.value.key, "_", "-")}")
+        name = lower(replace("${volumes.value.container}-${volumes.value.key}", "_", "-"))
 
         secret {
           secret = local.secret_file_map[volumes.value.container][volumes.value.key]
