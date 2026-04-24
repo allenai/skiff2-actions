@@ -177,7 +177,7 @@ for COMPONENT in infra services; do
         WORKSPACE="${SANITIZED_REPO}--${ENVIRONMENT}"
         echo ""
         echo "==> Selecting workspace: $WORKSPACE"
-        terraform workspace select -or-create "$WORKSPACE"
+        terraform workspace select "$WORKSPACE"
     fi
 done
 
