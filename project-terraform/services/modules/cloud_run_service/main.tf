@@ -7,6 +7,26 @@ data "google_secret_manager_secrets" "app_secrets" {
   filter = "name:global-${each.value}- OR name:${var.deployment_environment}-${each.value}-"
 }
 
+locals {
+  # Build map of { container: { secret_key: secret_id } }
+  # merging env specific on top of global secret_ids
+  secret_file_map = {
+    for container_name, secrets_data in data.google_secret_manager_secrets.app_secrets :
+    container_name => merge(
+      {
+        for secret in secrets_data.secrets :
+        trimprefix(secret.secret_id, "global-${container_name}-") => secret.secret_id
+        if startswith(secret.secret_id, "global-${container_name}-")
+      },
+      {
+        for secret in secrets_data.secrets :
+        trimprefix(secret.secret_id, "${var.deployment_environment}-${container_name}-") => secret.secret_id
+        if startswith(secret.secret_id, "${var.deployment_environment}-${container_name}-")
+      }
+    )
+  }
+}
+
 resource "google_cloud_run_v2_service" "service" {
   provider = google-beta
   name     = "${var.deployment_environment}-${var.service_name}"
@@ -139,10 +159,10 @@ resource "google_cloud_run_v2_service" "service" {
       ]...)
 
       content {
-        name = lower("${volumes.value.container}-${replace(volumes.value.key, "_", "-")}")
+        name = lower(replace("${volumes.value.container}-${volumes.value.key}", "_", "-"))
 
         secret {
-          secret = "${var.deployment_environment}-${volumes.value.container}-${volumes.value.key}"
+          secret = local.secret_file_map[volumes.value.container][volumes.value.key]
 
           items {
             version = "latest"
