@@ -13,6 +13,7 @@ import {
   resolveSecretString,
 } from "./secrets.ts";
 import { expandVariables } from "./util.ts";
+import { sanitizeBranchTag } from "../shared/utils.ts";
 
 export interface BuildContext {
   registry: string;
@@ -44,17 +45,12 @@ function createBuildState(): BuildState {
     buildError: null,
   };
 }
-
-function getBranchTag(branchName: string): string {
-  return branchName.replace(/[^a-zA-Z0-9._-]/g, "-");
-}
-
 function buildImageTags(
   service: ContainerConfig,
   context: BuildContext,
 ): string[] {
   const serviceName = `${context.repoName}-${service.name}`;
-  const branchTag = getBranchTag(context.branchName);
+  const branchTag = sanitizeBranchTag(context.branchName);
   const tags = [
     `${context.registry}/${context.projectId}/${serviceName}:${context.commitSha}`,
     `${context.registry}/${context.projectId}/${serviceName}:${branchTag}`,
@@ -78,7 +74,7 @@ export function buildDockerArgs(
     buildArgs.push("--push");
   }
 
-  const branchTag = getBranchTag(context.branchName);
+  const branchTag = sanitizeBranchTag(context.branchName);
 
   if (context.cacheFrom) {
     const replacements = {
@@ -107,10 +103,17 @@ export function buildDockerArgs(
   }
 
   if (service.extraBuildArgs) {
+    const deploymentEnv =
+      context.branchName === "main"
+        ? "prod"
+        : sanitizeBranchTag(context.branchName);
+
     const envReplacements = {
       PROJECT_ID: context.projectId,
       REPO_NAME: context.repoName,
       COMMIT_SHA: context.commitSha,
+      PROJECT_NAME: context.projectId.replace("ai2-skiff2-", ""),
+      SKIFF_ENV: deploymentEnv,
     } as const;
 
     service.extraBuildArgs.forEach((arg) => {
@@ -289,8 +292,11 @@ async function buildAll(
   }
 
   core.info(`Building ${services.length} services`);
-  
-  const buildTargets = services.flatMap(service => [service, ...service.sidecars ?? []])
+
+  const buildTargets = services.flatMap((service) => [
+    service,
+    ...(service.sidecars ?? []),
+  ]);
 
   // Build services, respecting dependencies
   const buildPromises = buildTargets.map((service) =>
