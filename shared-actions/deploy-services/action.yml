@@ -92,7 +92,7 @@ runs:
             target=""
         else
             printf -v target -- '-target=module.cloud_run_service["%s"] ' "${target_services[@]}"
-            echo "::info::Targeting modules: ${target}"
+            echo "::debug::Targeting modules: ${target}"
         fi
 
         if [ "${{ inputs.command }}" = "apply" ]; then
