@@ -86,6 +86,7 @@ runs:
       shell: bash
       working-directory: ${{ github.action_path }}/../../project-terraform/services
       run: |
+        services_input="${{ inputs.services }}"
         declare -a target_services=($(echo $services_input | tr "," " "))
         if [ ${#target_services[@]} -eq 0 ]; then
             target=""
