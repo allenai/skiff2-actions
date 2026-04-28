@@ -71,6 +71,7 @@ export async function generateServicesTFVars() {
 
   const workspace = `${sanitizeBranchTag(repoName)}--${sanitizeBranchTag(targetBranch)}`;
   core.setOutput("workspace", workspace);
+  core.setOutput("service_env_prefix", isMainBranch ? "" : `${deploymentEnv}-`);
 
   const projectName = projectId.replace(/^ai2-skiff2-/, "");
   core.setOutput("default_url", `https://${projectName}.pandajungle.org`);
