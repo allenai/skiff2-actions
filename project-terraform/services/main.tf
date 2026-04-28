@@ -32,6 +32,10 @@ data "google_project" "project" {
   project_id = var.project_id
 }
 
+locals {
+  project_name = trimprefix(var.project_id, "ai2-skiff2-")
+}
+
 module "cloud_run_service" {
   for_each = var.services
   source   = "./modules/cloud_run_service"
@@ -43,6 +47,7 @@ module "cloud_run_service" {
   service_name           = each.value.name
   service_containers     = each.value.containers
   project_id             = var.project_id
+  project_name           = local.project_name
   project_number         = data.google_project.project.number
   region                 = var.region
   deployment_environment = var.deployment_environment

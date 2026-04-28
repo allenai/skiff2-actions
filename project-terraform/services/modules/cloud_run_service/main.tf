@@ -103,6 +103,11 @@ resource "google_cloud_run_v2_service" "service" {
           value = var.deployment_environment
         }
 
+        env {
+          name  = "PROJECT_NAME"
+          value = var.project_name
+        }
+
         # Dynamically inject secrets from Secret Manager.
         # Secrets must be named "<ENV_VAR>-<service-name>".
         # The prefix and hyphens are stripped/converted to produce the env var name.
@@ -215,4 +220,15 @@ resource "google_iap_web_cloud_run_service_iam_policy" "policy" {
   location               = google_cloud_run_v2_service.service.location
   cloud_run_service_name = google_cloud_run_v2_service.service.name
   policy_data            = data.google_iam_policy.admin.policy_data
+}
+
+# Allow unauthenticated OPTIONS (CORS preflight) requests through IAP
+resource "google_iap_settings" "settings" {
+  name = "projects/${var.project_number}/iap_web/cloud_run-${google_cloud_run_v2_service.service.location}/services/${google_cloud_run_v2_service.service.name}"
+
+  access_settings {
+    cors_settings {
+      allow_http_options = true
+    }
+  }
 }

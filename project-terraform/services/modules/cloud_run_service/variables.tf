@@ -54,6 +54,11 @@ variable "project_id" {
   type        = string
 }
 
+variable "project_name" {
+  description = "The project name (repo name), e.g. project_id with the ai2-skiff2- prefix removed"
+  type        = string
+}
+
 variable "project_number" {
   description = "The GCP project number"
   type        = string
