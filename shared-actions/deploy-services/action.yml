@@ -86,10 +86,19 @@ runs:
       shell: bash
       working-directory: ${{ github.action_path }}/../../project-terraform/services
       run: |
-        if [ "${{ inputs.command }}" = "apply" ]; then
-          terraform apply -input=false -auto-approve
+        services_input="${{ inputs.services }}"
+        declare -a target_services=($(echo $services_input | tr "," " "))
+        if [ ${#target_services[@]} -eq 0 ]; then
+            target=""
         else
-          terraform plan -input=false
+            printf -v target -- '-target=module.cloud_run_service["%s"] ' "${target_services[@]}"
+            echo "::debug::Targeting modules: ${target}"
+        fi
+
+        if [ "${{ inputs.command }}" = "apply" ]; then
+          terraform apply -input=false -auto-approve $target
+        else
+          terraform plan -input=false $target
         fi
 
 branding:
