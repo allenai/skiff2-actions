@@ -84,7 +84,7 @@ resource "google_cloud_run_v2_service" "service" {
 
         # Liveness probe - using HTTP GET on the root health check endpoint
         dynamic "liveness_probe" {
-          for_each = containers.value.startup != null ? [containers.value.startup] : []
+          for_each = containers.value.liveness != null ? [containers.value.liveness] : []
           content {
             initial_delay_seconds = containers.value.liveness.initial_delay_seconds
             timeout_seconds       = containers.value.liveness.timeout_seconds
