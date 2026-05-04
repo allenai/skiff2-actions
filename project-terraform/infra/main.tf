@@ -263,7 +263,8 @@ module "lb-http" {
         max_ttl           = 86400
         serve_while_stale = 86400
         cache_key_policy = {
-          include_protocol = false
+          include_protocol     = false
+          include_query_string = true
         }
       }
 
