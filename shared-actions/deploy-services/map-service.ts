@@ -111,6 +111,8 @@ export interface ServiceEntry {
   allow_delete: boolean;
   min_instances: number;
   max_instances: number;
+  
+  service_account: string;
 }
 
 interface MapServiceAdditionalInput {
@@ -168,6 +170,7 @@ function mapService(
       : (serviceConfig.allowDelete ?? true),  // ephemeral: deletable unless explicitly false
     min_instances: serviceConfig.machine.minInstances,
     max_instances: serviceConfig.machine.maxInstances,
+    service_account: serviceConfig.serviceAccount
   };
 
   return service;

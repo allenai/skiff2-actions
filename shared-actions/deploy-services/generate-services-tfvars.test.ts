@@ -27,6 +27,7 @@ const fakeConfig = {
       secretFiles: {},
       customDomains: [],
       httpVersion: "2",
+      serviceAccount: "service.account@project.google.com",
       machine: {
         minInstances: 5,
         maxInstances: 20,
@@ -67,9 +68,30 @@ const fakeConfig = {
             failureThreshold: 4,
             path: "sidecar-startup",
             port: 5,
-          }
+          },
         },
       ],
+    },
+    {
+      name: "no-service-account",
+      cwd: ".",
+      deploy: true,
+      httpVersion: "1",
+      isRootService: false,
+      allowUnauthenticated: false,
+      allowedPrincipals: [],
+      allowDelete: false,
+      secretFiles: {},
+      customDomains: [],
+      machine: {
+        minInstances: 1,
+        maxInstances: 2,
+        memory: "512Mi",
+        cpu: 1,
+        cpuIdle: true,
+      },
+      startup: {},
+      liveness: {},
     },
     {
       name: "filteredService",
@@ -98,8 +120,8 @@ const fakeConfig = {
     {
       name: "remoteService",
       customDomains: [],
-    }
-  ]
+    },
+  ],
 } as const satisfies BuildConfig;
 
 test("generateServicesTFVars maps correctly", async () => {
@@ -107,7 +129,10 @@ test("generateServicesTFVars maps correctly", async () => {
   stubGithubActionInput("project_id", "fake-skiff-project");
   stubGithubActionInput("region", "fake-region");
   stubGithubActionInput("repo_name", "skiff-commodore-fake");
-  stubGithubActionInput("services", "generate-service-test");
+  stubGithubActionInput(
+    "services",
+    "generate-service-test, no-service-account",
+  );
   stubGithubActionInput("deploy_tag", "main");
 
   fs.writeFileSync("/fake-config-file.json", JSON.stringify(fakeConfig));
@@ -188,6 +213,34 @@ test("generateServicesTFVars maps correctly", async () => {
         max_instances: 20,
         min_instances: 5,
         name: "generate-service-test",
+        service_account: "service.account@project.google.com",
+      },
+      "no-service-account": {
+        allow_delete: false,
+        allow_unauthenticated: false,
+        allowed_principals: [],
+        containers: [
+          {
+            container_name: "skiff-commodore-fake-no-service-account",
+            liveness: {},
+            machine: {
+              cpu: "1",
+              cpu_idle: true,
+              memory: "512Mi",
+            },
+            name: "no-service-account",
+            port: {
+              name: "http1",
+              port: 8080,
+            },
+            secret_files: {},
+            startup: {},
+          },
+        ],
+        image_tag: "main",
+        max_instances: 2,
+        min_instances: 1,
+        name: "no-service-account",
       },
       filteredService: {
         allow_delete: false,
