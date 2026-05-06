@@ -115,7 +115,6 @@ export interface ServiceEntry {
 
 interface MapServiceAdditionalInput {
   serviceMap: Map<string, ServiceConfig>;
-  servicesToDeploy: string;
   repoName: string;
   imageTag: string;
   isMainBranch: boolean;
@@ -178,29 +177,6 @@ export function mapServices(
   services: ServiceConfig[],
   additionalInput: Omit<MapServiceAdditionalInput, "serviceMap">,
 ): Record<string, ServiceEntry> {
-  const serviceFilter =
-    additionalInput.servicesToDeploy
-      ?.split(",")
-      .map((s) => s.trim())
-      .filter(Boolean) ?? null;
-
-  // Validate filtered service names exist in the config
-  if (serviceFilter) {
-    const configServiceNames = services
-      .filter((s) => s.deploy !== false)
-      .map((s) => s.name);
-
-    const unknownServices = serviceFilter.filter(
-      (name) => !configServiceNames.includes(name),
-    );
-
-    if (unknownServices.length > 0) {
-      throw new Error(
-        `Unknown services specified: ${unknownServices.join(", ")}`,
-      );
-    }
-  }
-
   const serviceMap = services.reduce<Map<string, ServiceConfig>>(
     (acc, service) => {
       acc.set(service.name, service);
@@ -212,13 +188,6 @@ export function mapServices(
   const mappedServices = Object.values(services).reduce<
     Record<string, ServiceEntry>
   >((acc, serviceConfig) => {
-    if (
-      serviceFilter?.length > 0 &&
-      !serviceFilter.includes(serviceConfig.name)
-    ) {
-      return acc;
-    }
-
     if (!serviceConfig.deploy) {
       return acc;
     }
