@@ -30,6 +30,9 @@ export async function generateServicesTFVars() {
   const allEnvironments = config.environments ?? ["main"];
 
   const servicesToDeploy = core.getInput("services");
+  if (servicesToDeploy) {
+    core.info(`Services input (used for terraform targeting): ${servicesToDeploy}`);
+  }
 
   // Build services for ONLY the target environment
   const targetBranch = environmentInput || "main";
@@ -41,7 +44,6 @@ export async function generateServicesTFVars() {
   core.info(`Building services map for environment "${targetBranch}"`);
 
   const services = mapServices(config.services, {
-    servicesToDeploy,
     repoName,
     imageTag,
     isMainBranch,

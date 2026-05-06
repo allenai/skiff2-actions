@@ -189,6 +189,33 @@ test("generateServicesTFVars maps correctly", async () => {
         min_instances: 5,
         name: "generate-service-test",
       },
+      filteredService: {
+        allow_delete: false,
+        allow_unauthenticated: false,
+        allowed_principals: ["domain:allenai.org"],
+        containers: [
+          {
+            container_name: "skiff-commodore-fake-filteredService",
+            machine: {
+              cpu: "1",
+              cpu_idle: true,
+              memory: "512Mi",
+            },
+            name: "filteredService",
+            port: {
+              name: "h2c",
+              port: 8080,
+            },
+            secret_files: {},
+            startup: {},
+            liveness: {},
+          },
+        ],
+        image_tag: "main",
+        max_instances: 2,
+        min_instances: 1,
+        name: "filteredService",
+      },
     },
   });
 });
