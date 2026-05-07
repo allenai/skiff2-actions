@@ -39,6 +39,8 @@ resource "google_cloud_run_v2_service" "service" {
   deletion_protection  = !var.allow_delete
 
   template {
+    service_account = var.service_account
+
     scaling {
       min_instance_count = var.min_instances
       max_instance_count = var.max_instances
