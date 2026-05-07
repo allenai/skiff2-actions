@@ -29,6 +29,7 @@ locals {
     )
   }
 
+  # The Cloud Run TF module doesn't reset the service account if it's set to null. Explicitly setting the default compute service account handles that 
   service_account_email = var.service_account != null ? var.service_account : data.google_compute_default_service_account.default_service_account.email
 }
 
