@@ -61,6 +61,7 @@ variable "services" {
     allow_delete          = bool
     allow_unauthenticated = bool
     allowed_principals    = list(string)
+    service_account       = optional(string)
   }))
 }
 

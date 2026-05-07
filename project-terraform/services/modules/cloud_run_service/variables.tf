@@ -95,3 +95,9 @@ variable "min_instances" {
 variable "max_instances" {
   type = number
 }
+
+variable "service_account" {
+  type        = string
+  default     = null
+  description = "The service account to run this service with. Applies to all containers (sidecars) in the service. Will look something like <ACCOUNT_NAME>@<PROJECT_NAME>.iam.gserviceaccount.com"
+}
