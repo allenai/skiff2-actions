@@ -7,6 +7,9 @@ data "google_secret_manager_secrets" "app_secrets" {
   filter = "name:global-${each.value}- OR name:${var.deployment_environment}-${each.value}-"
 }
 
+data "google_compute_default_service_account" "default_service_account" {
+}
+
 locals {
   # Build map of { container: { secret_key: secret_id } }
   # merging env specific on top of global secret_ids
@@ -25,6 +28,8 @@ locals {
       }
     )
   }
+
+  service_account_email = var.service_account != null ? var.service_account : data.google_compute_default_service_account.default_service_account.email
 }
 
 resource "google_cloud_run_v2_service" "service" {
@@ -39,7 +44,7 @@ resource "google_cloud_run_v2_service" "service" {
   deletion_protection  = !var.allow_delete
 
   template {
-    service_account = var.service_account
+    service_account = local.service_account_email
 
     scaling {
       min_instance_count = var.min_instances
