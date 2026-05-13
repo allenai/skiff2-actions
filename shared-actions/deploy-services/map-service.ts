@@ -119,7 +119,7 @@ interface MapServiceAdditionalInput {
   serviceMap: Map<string, ServiceConfig>;
   repoName: string;
   imageTag: string;
-  isMainBranch: boolean;
+  isProdBranch: boolean;
   isLongLived: boolean;
   deploymentEnv: string;
 }
@@ -200,7 +200,7 @@ export function mapServices(
       ...additionalInput,
     });
 
-    const serviceKey = additionalInput.isMainBranch
+    const serviceKey = additionalInput.isProdBranch
       ? serviceConfig.name
       : `${additionalInput.deploymentEnv}-${serviceConfig.name}`;
 

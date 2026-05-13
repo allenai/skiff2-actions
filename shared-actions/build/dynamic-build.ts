@@ -21,6 +21,7 @@ export interface BuildContext {
   repoName: string;
   commitSha: string;
   branchName: string;
+  prodBranch: string;
   buildArgs: string[] | null;
   secrets: string[] | null;
   secretEnvs: string[] | null;
@@ -55,7 +56,7 @@ function buildImageTags(
     `${context.registry}/${context.projectId}/${serviceName}:${context.commitSha}`,
     `${context.registry}/${context.projectId}/${serviceName}:${branchTag}`,
   ];
-  if (context.branchName === "main") {
+  if (context.branchName === context.prodBranch) {
     tags.push(`${context.registry}/${context.projectId}/${serviceName}:latest`);
   }
   return tags;
@@ -104,7 +105,7 @@ export function buildDockerArgs(
 
   if (service.extraBuildArgs) {
     const deploymentEnv =
-      context.branchName === "main"
+      context.branchName === context.prodBranch
         ? "prod"
         : sanitizeBranchTag(context.branchName);
 
@@ -419,6 +420,7 @@ export async function main() {
       repoName,
       commitSha,
       branchName,
+      prodBranch: config.prodBranch ?? "main",
       buildArgs,
       secrets,
       secretEnvs,

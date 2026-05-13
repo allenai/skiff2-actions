@@ -27,7 +27,8 @@ export async function generateServicesTFVars() {
   const config = BuildConfigSchema.parse(rawConfig);
 
   const environmentInput = core.getInput("environment");
-  const allEnvironments = config.environments ?? ["main"];
+  const prodBranch = config.prodBranch ?? "main";
+  const allEnvironments = config.environments ?? [prodBranch];
 
   const servicesToDeploy = core.getInput("services");
   if (servicesToDeploy) {
@@ -35,10 +36,10 @@ export async function generateServicesTFVars() {
   }
 
   // Build services for ONLY the target environment
-  const targetBranch = environmentInput || "main";
-  const isMainBranch = targetBranch === "main";
+  const targetBranch = environmentInput || prodBranch;
+  const isProdBranch = targetBranch === prodBranch;
   const isLongLived = allEnvironments.includes(targetBranch);
-  const deploymentEnv = isMainBranch ? "prod" : sanitizeBranchTag(targetBranch);
+  const deploymentEnv = isProdBranch ? "prod" : sanitizeBranchTag(targetBranch);
   const imageTag = core.getInput("deploy_tag", { required: true });
 
   core.info(`Building services map for environment "${targetBranch}"`);
@@ -46,7 +47,7 @@ export async function generateServicesTFVars() {
   const services = mapServices(config.services, {
     repoName,
     imageTag,
-    isMainBranch,
+    isProdBranch,
     isLongLived,
     deploymentEnv,
   });
@@ -73,7 +74,7 @@ export async function generateServicesTFVars() {
 
   const workspace = `${sanitizeBranchTag(repoName)}--${sanitizeBranchTag(targetBranch)}`;
   core.setOutput("workspace", workspace);
-  core.setOutput("service_env_prefix", isMainBranch ? "" : `${deploymentEnv}-`);
+  core.setOutput("service_env_prefix", isProdBranch ? "" : `${deploymentEnv}-`);
 
   const projectName = projectId.replace(/^ai2-skiff2-/, "");
   core.setOutput("default_url", `https://${projectName}.pandajungle.org`);
