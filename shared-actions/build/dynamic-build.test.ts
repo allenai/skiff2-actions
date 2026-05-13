@@ -1,5 +1,5 @@
 import { fs, vol } from "memfs";
-import type { BuildConfig, ServiceConfig } from "../shared/skiff2-config.ts";
+import type { BuildConfigInput, ServiceConfig } from "../shared/skiff2-config.ts";
 import {
   getInputs,
   buildDockerArgs,
@@ -283,7 +283,7 @@ test("builds with sidecars and multiple services", async () => {
         httpVersion: "1",
       },
     ],
-  } satisfies BuildConfig;
+  } satisfies BuildConfigInput;
 
   fs.mkdirSync(CONFIG_FILE_DIRECTORY);
   fs.writeFileSync(resolve(configPath), JSON.stringify(buildConfig));

@@ -50,6 +50,9 @@ fi
 echo "==> skiff2.json contents:"
 echo "$SKIFF2_JSON" | jq .
 
+PROD_BRANCH=$(echo "$SKIFF2_JSON" | jq -r '.prodBranch // "main"')
+echo "==> Prod branch: $PROD_BRANCH"
+
 # Write the fetched skiff2.json to a temp file
 TMPDIR_PATH=$(mktemp -d)
 echo "$SKIFF2_JSON" > "$TMPDIR_PATH/skiff2.json"
@@ -69,15 +72,15 @@ for COMPONENT in infra services; do
 
     if [ "$COMPONENT" = "infra" ]; then
         # Infra: build services for ALL environments
-        SERVICES_JSON=$(echo "$SKIFF2_JSON" | jq --arg repo "$REPO_NAME" '
-            (.environments // ["main"]) as $environments |
+        SERVICES_JSON=$(echo "$SKIFF2_JSON" | jq --arg repo "$REPO_NAME" --arg prod_branch "$PROD_BRANCH" '
+            (.environments // [$prod_branch]) as $environments |
             [
                 $environments[] as $branch |
                 ($branch | gsub("[^a-zA-Z0-9._-]"; "-")) as $sanitized |
-                (if $branch == "main" then "prod" else $sanitized end) as $dep_env |
+                (if $branch == $prod_branch then "prod" else $sanitized end) as $dep_env |
                 .services[] | select(.deploy != false) |
                 {
-                    key: (if $branch == "main" then .name else ($dep_env + "-" + .name) end),
+                    key: (if $branch == $prod_branch then .name else ($dep_env + "-" + .name) end),
                     value: {
                         name: .name,
                         container_name: ($repo + "-" + .name),
@@ -85,7 +88,7 @@ for COMPONENT in infra services; do
                         allow_unauthenticated: (.allowUnauthenticated // false),
                         allow_delete: (.allowDelete // false),
                         secret_files: (.secretFiles // {}),
-                        custom_domains: (if $branch == "main" then (.customDomains // []) else [] end),
+                        custom_domains: (if $branch == $prod_branch then (.customDomains // []) else [] end),
                         image_tag: $sanitized,
                         deployment_environment: $dep_env
                     }
@@ -118,13 +121,13 @@ for COMPONENT in infra services; do
         INPUT_REGION="us-west1" \
         INPUT_REPO_NAME="$REPO_NAME" \
         INPUT_SERVICES="" \
-        INPUT_DEPLOY_TAG="main" \
+        INPUT_DEPLOY_TAG="$PROD_BRANCH" \
         node "./deploy-${COMPONENT}/index.ts" || {
             echo ""
             echo "Note: generate-${COMPONENT}-tfvars.ts uses @actions/core which may fail outside GitHub Actions."
             echo "Falling back to manual tfvars generation..."
 
-            SERVICES_JSON=$(echo "$SKIFF2_JSON" | jq --arg repo "$REPO_NAME" '
+            SERVICES_JSON=$(echo "$SKIFF2_JSON" | jq --arg repo "$REPO_NAME" --arg prod_branch "$PROD_BRANCH" '
                 [
                     .services[] | select(.deploy != false) |
                     {
@@ -137,7 +140,7 @@ for COMPONENT in infra services; do
                             allow_delete: (.allowDelete // false),
                             secret_files: (.secretFiles // {}),
                             custom_domains: (.customDomains // []),
-                            image_tag: "main",
+                            image_tag: $prod_branch,
                             deployment_environment: "prod"
                         }
                     }
@@ -173,7 +176,7 @@ for COMPONENT in infra services; do
 
     if [ "$COMPONENT" = "services" ]; then
         SANITIZED_REPO=$(echo "$REPO_NAME" | sed 's/[^a-zA-Z0-9._-]/-/g')
-        ENVIRONMENT="main"
+        ENVIRONMENT="$PROD_BRANCH"
         WORKSPACE="${SANITIZED_REPO}--${ENVIRONMENT}"
         echo ""
         echo "==> Selecting workspace: $WORKSPACE"

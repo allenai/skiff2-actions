@@ -92,6 +92,14 @@ export const RemoteServiceConfigSchema = ServiceConfigSchema.pick({
 export const BuildConfigSchema = z.strictObject({
   projectName: z.string().min(1).optional(),
   environments: z.array(z.string().min(1)).optional(),
+  prodBranch: z
+    .string()
+    .min(1)
+    .default("main")
+    .meta({
+      description:
+        "The branch whose deploys map to the 'prod' environment (bare domain, custom domains, no env prefix on service names). Defaults to 'main'.",
+    }),
   services: z
     .array(ServiceConfigSchema)
     .min(1, "At least one service is required"),
@@ -103,3 +111,4 @@ export const BuildConfigSchema = z.strictObject({
 export type ServiceConfig = z.infer<typeof ServiceConfigSchema>;
 export type RemoteServiceConfig = z.infer<typeof RemoteServiceConfigSchema>;
 export type BuildConfig = z.infer<typeof BuildConfigSchema>;
+export type BuildConfigInput = z.input<typeof BuildConfigSchema>;
