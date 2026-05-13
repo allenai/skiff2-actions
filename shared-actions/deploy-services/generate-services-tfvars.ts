@@ -27,8 +27,7 @@ export async function generateServicesTFVars() {
   const config = BuildConfigSchema.parse(rawConfig);
 
   const environmentInput = core.getInput("environment");
-  const prodBranch = config.prodBranch ?? "main";
-  const allEnvironments = config.environments ?? [prodBranch];
+  const allEnvironments = config.environments ?? [config.prodBranch];
 
   const servicesToDeploy = core.getInput("services");
   if (servicesToDeploy) {
@@ -36,8 +35,8 @@ export async function generateServicesTFVars() {
   }
 
   // Build services for ONLY the target environment
-  const targetBranch = environmentInput || prodBranch;
-  const isProdBranch = targetBranch === prodBranch;
+  const targetBranch = environmentInput || config.prodBranch;
+  const isProdBranch = targetBranch === config.prodBranch;
   const isLongLived = allEnvironments.includes(targetBranch);
   const deploymentEnv = isProdBranch ? "prod" : sanitizeBranchTag(targetBranch);
   const imageTag = core.getInput("deploy_tag", { required: true });

@@ -1,6 +1,6 @@
 import { fs, vol } from "memfs";
 import { beforeEach, expect, test, vi } from "vitest";
-import type { BuildConfig } from "../shared/skiff2-config";
+import type { BuildConfigInput } from "../shared/skiff2-config";
 import { stubGithubActionInput } from "../test-util/stub-github-action-input";
 import { generateServicesTFVars } from "./generate-services-tfvars";
 
@@ -122,7 +122,7 @@ const fakeConfig = {
       customDomains: [],
     },
   ],
-} as const satisfies BuildConfig;
+} as const satisfies BuildConfigInput;
 
 test("generateServicesTFVars maps correctly", async () => {
   stubGithubActionInput("config_file", "/fake-config-file.json");

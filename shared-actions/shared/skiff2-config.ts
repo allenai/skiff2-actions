@@ -95,7 +95,7 @@ export const BuildConfigSchema = z.strictObject({
   prodBranch: z
     .string()
     .min(1)
-    .optional()
+    .default("main")
     .meta({
       description:
         "The branch whose deploys map to the 'prod' environment (bare domain, custom domains, no env prefix on service names). Defaults to 'main'.",
@@ -111,3 +111,4 @@ export const BuildConfigSchema = z.strictObject({
 export type ServiceConfig = z.infer<typeof ServiceConfigSchema>;
 export type RemoteServiceConfig = z.infer<typeof RemoteServiceConfigSchema>;
 export type BuildConfig = z.infer<typeof BuildConfigSchema>;
+export type BuildConfigInput = z.input<typeof BuildConfigSchema>;

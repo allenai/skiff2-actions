@@ -37,8 +37,7 @@ async function main() {
   const rawConfig = JSON.parse(configContent);
   const config = BuildConfigSchema.parse(rawConfig);
 
-  const prodBranch = config.prodBranch ?? "main";
-  const allEnvironments = config.environments ?? [prodBranch];
+  const allEnvironments = config.environments ?? [config.prodBranch];
 
   // Find the default (root) service
   let defaultServiceName: string | undefined;
@@ -61,7 +60,7 @@ async function main() {
 
   // Branch environments (non-prod, sanitized)
   const branchEnvironments = allEnvironments
-    .filter((e) => e !== prodBranch)
+    .filter((e) => e !== config.prodBranch)
     .map(sanitizeBranchTag);
 
   core.info(`Default service: ${defaultServiceName}`);

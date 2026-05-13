@@ -420,7 +420,7 @@ export async function main() {
       repoName,
       commitSha,
       branchName,
-      prodBranch: config.prodBranch ?? "main",
+      prodBranch: config.prodBranch,
       buildArgs,
       secrets,
       secretEnvs,
