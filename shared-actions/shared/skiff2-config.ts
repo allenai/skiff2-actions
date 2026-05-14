@@ -88,6 +88,7 @@ export const ServiceConfigSchema = z.strictObject({
 export const RemoteServiceConfigSchema = ServiceConfigSchema.pick({
   name: true,
   customDomains: true,
+  includeDNSAuthorizationForExternalDomains: true
 });
 
 export const BuildConfigSchema = z.strictObject({

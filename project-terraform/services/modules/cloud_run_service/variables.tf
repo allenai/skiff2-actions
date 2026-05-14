@@ -101,3 +101,9 @@ variable "service_account" {
   default     = null
   description = "The service account to run this service with. Applies to all containers (sidecars) in the service. Will look something like <ACCOUNT_NAME>@<PROJECT_NAME>.iam.gserviceaccount.com"
 }
+
+variable "include_dns_authorization_for_external_domains" {
+  type        = bool
+  default     = false
+  description = "If true, this will set up DNS authorization records as well as LB authorization for your external domains. This is useful if you're migrating an existing service and want a 0 downtime migration."
+}

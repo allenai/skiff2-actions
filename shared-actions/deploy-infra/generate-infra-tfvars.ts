@@ -4,14 +4,19 @@ import { resolve } from "path";
 import { BuildConfigSchema, type RemoteServiceConfig, type ServiceConfig } from "../shared/skiff2-config.ts";
 import { sanitizeBranchTag } from "../shared/utils.ts";
 
+interface CustomDomainConfig {
+  service_name: string;
+  include_dns_authorization_for_external_domains: boolean;
+}
+
 const mapCustomDomainsFromService = (
     serviceConfigs: ServiceConfig[] | RemoteServiceConfig[]
-  ): Record<string, string> => {
-    const domainMappings: Record<string, string> = {};
+  ): Record<string, CustomDomainConfig> => {
+    const domainMappings: Record<string, CustomDomainConfig> = {};
     for (const service of serviceConfigs) {
       if ('deploy' in service && service.deploy === false) continue;
       for (const domain of service.customDomains) {
-        domainMappings[domain] = `prod-${service.name}`;
+        domainMappings[domain] = { service_name: `prod-${service.name}`, include_dns_authorization_for_external_domains: service.includeDNSAuthorizationForExternalDomains};
       }
     }
     return domainMappings;
@@ -53,7 +58,7 @@ async function main() {
   }
 
   // Build custom domain mappings from service configs (prod only)
-  const customDomainMappings: Record<string, string> = {
+  const customDomainMappings: Record<string, CustomDomainConfig> = {
     ...mapCustomDomainsFromService(config.remoteServices || []),
     ...mapCustomDomainsFromService(config.services),
   };

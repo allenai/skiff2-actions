@@ -25,9 +25,14 @@ variable "branch_environments" {
 }
 
 variable "custom_domain_mappings" {
-  description = "Map of custom domain to Cloud Run service name"
-  type        = map(string)
-  default     = {}
+  description = "Map of custom domain to Cloud Run service name and DNS Auth kind"
+
+  type = map(object({
+    service_name                                   = string
+    include_dns_authorization_for_external_domains = bool
+  }))
+
+  default = {}
 }
 
 variable "enable_cdn" {
