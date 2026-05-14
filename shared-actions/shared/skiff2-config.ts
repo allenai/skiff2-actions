@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const ContainerMachineConfigSchema = z.strictObject({
   memory: z.string().optional().default("512Mi"),
-  cpu: z.int().min(1).optional().default(1),
+  cpu: z.number().min(0.08).optional().default(1),
   cpuIdle: z.boolean().optional().default(true),
 });
 
