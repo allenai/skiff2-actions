@@ -222,7 +222,7 @@ resource "google_certificate_manager_certificate" "custom" {
 resource "google_certificate_manager_dns_authorization" "custom_domain" {
   for_each = { for key, value in var.custom_domain_mappings : key => value if value.include_dns_authorization_for_external_domains }
 
-  name   = "${local.project_name}-custom-domain-dns-auth-${each.key}"
+  name   = "${local.project_name}-dns-auth-${replace(each.key, ".", "-")}"
   domain = each.key
 }
 
@@ -238,7 +238,7 @@ resource "google_certificate_manager_certificate" "custom_domain_with_dns_auth" 
 }
 
 locals {
-  all_certificates    = concat(google_certificate_manager_certificate.custom[*], google_certificate_manager_certificate.custom_domain_with_dns_auth[*])
+  all_certificates    = concat([for certificate in google_certificate_manager_certificate.custom : certificate], [for certificate in google_certificate_manager_certificate.custom_domain_with_dns_auth : certificate])
   all_certificate_ids = [for certificate in local.all_certificates : certificate.id]
 }
 
