@@ -112,9 +112,7 @@ export interface ServiceEntry {
   min_instances: number;
   max_instances: number;
   
-  service_account?: string;
-
-  include_dns_authorization_for_external_domains: boolean;
+  service_account: string;
 }
 
 interface MapServiceAdditionalInput {
@@ -172,8 +170,7 @@ function mapService(
       : (serviceConfig.allowDelete ?? true),  // ephemeral: deletable unless explicitly false
     min_instances: serviceConfig.machine.minInstances,
     max_instances: serviceConfig.machine.maxInstances,
-    service_account: serviceConfig.serviceAccount,
-    include_dns_authorization_for_external_domains: serviceConfig.includeDNSAuthorizationForExternalDomains
+    service_account: serviceConfig.serviceAccount
   };
 
   return service;

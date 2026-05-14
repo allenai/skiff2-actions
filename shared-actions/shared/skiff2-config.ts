@@ -81,8 +81,7 @@ export const ServiceConfigSchema = z.strictObject({
       description:
         "Defines the HTTP version to use for this service. Only use HTTP2 if your service supports HTTP2. https://docs.cloud.google.com/run/docs/configuring/http2",
     }),
-  serviceAccount: z.email().optional().meta({description: "The service account to run this service with. Applies to all containers (sidecars) in the service. Will look something like <ACCOUNT_NAME>@<PROJECT_NAME>.iam.gserviceaccount.com"}),
-  includeDNSAuthorizationForExternalDomains: z.boolean().optional().default(false)
+  serviceAccount: z.email().optional().meta({description: "The service account to run this service with. Applies to all containers (sidecars) in the service. Will look something like <ACCOUNT_NAME>@<PROJECT_NAME>.iam.gserviceaccount.com"})
 });
 
 export const RemoteServiceConfigSchema = ServiceConfigSchema.pick({
