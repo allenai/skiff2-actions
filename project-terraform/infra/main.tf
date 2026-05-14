@@ -116,12 +116,12 @@ resource "google_compute_region_network_endpoint_group" "branch_default" {
 # Explicit NEGs for custom domain mappings
 resource "google_compute_region_network_endpoint_group" "custom_domain" {
   for_each              = var.custom_domain_mappings
-  name                  = "${local.project_name}-custom-${each.value}-${replace(each.key, ".", "-")}-neg"
+  name                  = "${local.project_name}-custom-${each.value.service_name}-${replace(each.key, ".", "-")}-neg"
   network_endpoint_type = "SERVERLESS"
   region                = var.region
   project               = var.project_id
   cloud_run {
-    service = each.value
+    service = each.value.service_name
   }
   lifecycle {
     create_before_destroy = true
@@ -233,7 +233,7 @@ resource "google_certificate_manager_certificate" "custom_domain_with_dns_auth" 
 
   managed {
     domains            = [each.value.domain]
-    dns_authorizations = [each.value]
+    dns_authorizations = [each.value.id]
   }
 }
 
