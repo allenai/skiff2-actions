@@ -1,7 +1,11 @@
 import * as core from "@actions/core";
 import { readFile, writeFile } from "fs/promises";
 import { resolve } from "path";
-import { BuildConfigSchema, type RemoteServiceConfig, type ServiceConfig } from "../shared/skiff2-config.ts";
+import {
+  BuildConfigSchema,
+  type RemoteServiceConfig,
+  type ServiceConfig,
+} from "../shared/skiff2-config.ts";
 import { sanitizeBranchTag } from "../shared/utils.ts";
 
 interface CustomDomainConfig {
@@ -10,23 +14,29 @@ interface CustomDomainConfig {
 }
 
 const mapCustomDomainsFromService = (
-    serviceConfigs: ServiceConfig[] | RemoteServiceConfig[]
-  ): Record<string, CustomDomainConfig> => {
-    const domainMappings: Record<string, CustomDomainConfig> = {};
-    for (const service of serviceConfigs) {
-      if ('deploy' in service && service.deploy === false) continue;
-      for (const domain of service.customDomains) {
-        domainMappings[domain] = { service_name: `prod-${service.name}`, include_dns_authorization_for_external_domains: service.includeDNSAuthorizationForExternalDomains};
-      }
+  serviceConfigs: ServiceConfig[] | RemoteServiceConfig[],
+): Record<string, CustomDomainConfig> => {
+  const domainMappings: Record<string, CustomDomainConfig> = {};
+  for (const service of serviceConfigs) {
+    if ("deploy" in service && service.deploy === false) continue;
+    for (const domain of service.customDomains) {
+      domainMappings[domain] = {
+        service_name: `prod-${service.name}`,
+        include_dns_authorization_for_external_domains:
+          service.includeDNSAuthorizationForExternalDomains,
+      };
     }
-    return domainMappings;
   }
+  return domainMappings;
+};
 
 async function main() {
   const configPath = core.getInput("config_file", { required: true });
   const projectId = core.getInput("project_id", { required: true });
   const region = core.getInput("region", { required: true });
-  const useClassicLoadBalancer = core.getBooleanInput("use_classic_load_balancer")
+  const useClassicLoadBalancer = core.getBooleanInput(
+    "use_classic_load_balancer",
+  );
   const terraformDir = process.env.TERRAFORM_DIR;
 
   if (!terraformDir) {
@@ -70,7 +80,9 @@ async function main() {
 
   core.info(`Default service: ${defaultServiceName}`);
   core.info(`Branch environments: ${branchEnvironments.join(", ") || "none"}`);
-  core.info(`Custom domains: ${Object.keys(customDomainMappings).join(", ") || "none"}`);
+  core.info(
+    `Custom domains: ${Object.keys(customDomainMappings).join(", ") || "none"}`,
+  );
 
   const tfvars = {
     project_id: projectId,
