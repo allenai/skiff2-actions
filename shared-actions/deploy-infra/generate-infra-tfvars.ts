@@ -30,7 +30,7 @@ const mapCustomDomainsFromService = (
   return domainMappings;
 };
 
-async function main() {
+export async function generateInfraTFVars() {
   const configPath = core.getInput("config_file", { required: true });
   const projectId = core.getInput("project_id", { required: true });
   const region = core.getInput("region", { required: true });
@@ -103,11 +103,3 @@ async function main() {
   const projectName = projectId.replace(/^ai2-skiff2-/, "");
   core.setOutput("default_url", `https://${projectName}.pandajungle.org`);
 }
-
-main().catch((error) => {
-  if (error instanceof Error) {
-    core.setFailed(error.message);
-  } else {
-    core.setFailed("Unknown error occurred");
-  }
-});

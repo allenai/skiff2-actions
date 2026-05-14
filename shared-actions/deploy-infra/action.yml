@@ -51,7 +51,7 @@ runs:
         INPUT_REGION: ${{ inputs.region }}
         TERRAFORM_DIR: ${{ github.action_path }}/../../project-terraform/infra
         INPUT_USE_CLASSIC_LOAD_BALANCER: ${{ inputs.use_classic_load_balancer }}
-      run: node ./deploy-infra/generate-infra-tfvars.ts
+      run: node ./deploy-infra/index.ts
 
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
