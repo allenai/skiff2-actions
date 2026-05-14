@@ -87,7 +87,7 @@ const fakeConfig = {
         minInstances: 1,
         maxInstances: 2,
         memory: "512Mi",
-        cpu: 1,
+        cpu: 0.08,
         cpuIdle: true,
       },
       startup: {},
@@ -224,7 +224,7 @@ test("generateServicesTFVars maps correctly", async () => {
             container_name: "skiff-commodore-fake-no-service-account",
             liveness: {},
             machine: {
-              cpu: "1",
+              cpu: "0.08",
               cpu_idle: true,
               memory: "512Mi",
             },
