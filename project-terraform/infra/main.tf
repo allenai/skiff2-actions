@@ -116,12 +116,12 @@ resource "google_compute_region_network_endpoint_group" "branch_default" {
 # Explicit NEGs for custom domain mappings
 resource "google_compute_region_network_endpoint_group" "custom_domain" {
   for_each              = var.custom_domain_mappings
-  name                  = "${local.project_name}-custom-${each.value}-${replace(each.key, ".", "-")}-neg"
+  name                  = "${local.project_name}-custom-${each.value.service_name}-${replace(each.key, ".", "-")}-neg"
   network_endpoint_type = "SERVERLESS"
   region                = var.region
   project               = var.project_id
   cloud_run {
-    service = each.value
+    service = each.value.service_name
   }
   lifecycle {
     create_before_destroy = true
@@ -219,14 +219,36 @@ resource "google_certificate_manager_certificate" "custom" {
   }
 }
 
+resource "google_certificate_manager_dns_authorization" "custom_domain" {
+  for_each = { for key, value in var.custom_domain_mappings : key => value if value.include_dns_authorization_for_external_domains }
+
+  name   = "${local.project_name}-dns-auth-${replace(each.key, ".", "-")}"
+  domain = each.key
+}
+
+resource "google_certificate_manager_certificate" "custom_domain_with_dns_auth" {
+  for_each = google_certificate_manager_dns_authorization.custom_domain
+
+  name = "${local.project_name}-cert-dns-auth-${replace(each.value.domain, ".", "-")}"
+
+  managed {
+    domains            = [each.value.domain]
+    dns_authorizations = [each.value.id]
+  }
+}
+
 # Cert map entries — custom domains only (wildcard entries managed by skiff2)
 resource "google_certificate_manager_certificate_map_entry" "custom" {
-  for_each     = var.custom_domain_mappings
-  name         = "${local.project_name}-entry-${replace(each.key, ".", "-")}"
-  project      = var.project_id
-  map          = data.google_certificate_manager_certificate_map.default.name
-  certificates = [google_certificate_manager_certificate.custom[each.key].id]
-  hostname     = each.key
+  for_each = var.custom_domain_mappings
+  name     = "${local.project_name}-entry-${replace(each.key, ".", "-")}"
+  project  = var.project_id
+  map      = data.google_certificate_manager_certificate_map.default.name
+  certificates = concat(
+    [google_certificate_manager_certificate.custom[each.key].id],
+    lookup(google_certificate_manager_certificate.custom_domain_with_dns_auth, each.key, null) != null
+    ? [google_certificate_manager_certificate.custom_domain_with_dns_auth[each.key].id]
+  : [])
+  hostname = each.key
 }
 
 
