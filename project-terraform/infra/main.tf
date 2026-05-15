@@ -237,19 +237,18 @@ resource "google_certificate_manager_certificate" "custom_domain_with_dns_auth" 
   }
 }
 
-locals {
-  all_certificates    = concat([for certificate in google_certificate_manager_certificate.custom : certificate], [for certificate in google_certificate_manager_certificate.custom_domain_with_dns_auth : certificate])
-  all_certificate_ids = [for certificate in local.all_certificates : certificate.id]
-}
-
 # Cert map entries — custom domains only (wildcard entries managed by skiff2)
 resource "google_certificate_manager_certificate_map_entry" "custom" {
-  for_each     = var.custom_domain_mappings
-  name         = "${local.project_name}-entry-${replace(each.key, ".", "-")}"
-  project      = var.project_id
-  map          = data.google_certificate_manager_certificate_map.default.name
-  certificates = local.all_certificate_ids
-  hostname     = each.key
+  for_each = var.custom_domain_mappings
+  name     = "${local.project_name}-entry-${replace(each.key, ".", "-")}"
+  project  = var.project_id
+  map      = data.google_certificate_manager_certificate_map.default.name
+  certificates = concat(
+    [google_certificate_manager_certificate.custom[each.key].id],
+    lookup(google_certificate_manager_certificate.custom_domain_with_dns_auth, each.key, null) != null
+    ? [google_certificate_manager_certificate.custom_domain_with_dns_auth[each.key].id]
+  : [])
+  hostname = each.key
 }
 
 
