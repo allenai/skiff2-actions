@@ -55,14 +55,13 @@ variable "services" {
       }))
     }))
 
-    name                                           = string
-    min_instances                                  = number
-    max_instances                                  = number
-    allow_delete                                   = bool
-    allow_unauthenticated                          = bool
-    allowed_principals                             = list(string)
-    service_account                                = optional(string)
-    include_dns_authorization_for_external_domains = bool
+    name                  = string
+    min_instances         = number
+    max_instances         = number
+    allow_delete          = bool
+    allow_unauthenticated = bool
+    allowed_principals    = list(string)
+    service_account       = optional(string)
   }))
 }
 
