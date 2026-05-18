@@ -16,7 +16,7 @@ const fakeConfig = {
   environments: ["main"],
   services: [
     {
-      name: "generate-service-test",
+      name: "gen-svc-test",
       cwd: ".",
       dockerFile: "build-test.Dockerfile",
       deploy: true,
@@ -52,7 +52,7 @@ const fakeConfig = {
       },
       sidecars: [
         {
-          name: "generate-service-test-sidecar",
+          name: "gen-svc-sidecar",
           cwd: "./sidecar",
           dockerFile: "sidecar.Dockerfile",
           secretFiles: {},
@@ -73,7 +73,7 @@ const fakeConfig = {
       ],
     },
     {
-      name: "no-service-account",
+      name: "no-svc-account",
       cwd: ".",
       deploy: true,
       httpVersion: "1",
@@ -131,7 +131,7 @@ test("generateServicesTFVars maps correctly", async () => {
   stubGithubActionInput("repo_name", "skiff-commodore-fake");
   stubGithubActionInput(
     "services",
-    "generate-service-test, no-service-account",
+    "gen-svc-test, no-svc-account",
   );
   stubGithubActionInput("deploy_tag", "main");
 
@@ -154,13 +154,13 @@ test("generateServicesTFVars maps correctly", async () => {
     project_id: "fake-skiff-project",
     region: "fake-region",
     services: {
-      "generate-service-test": {
+      "gen-svc-test": {
         allow_delete: true,
         allow_unauthenticated: true,
         allowed_principals: ["domain:allenai.org"],
         containers: [
           {
-            container_name: "skiff-commodore-fake-generate-service-test",
+            container_name: "skiff-commodore-fake-gen-svc-test",
             liveness: {
               initial_delay_seconds: 10,
               path: "liveness",
@@ -173,7 +173,7 @@ test("generateServicesTFVars maps correctly", async () => {
               cpu_idle: false,
               memory: "2Gi",
             },
-            name: "generate-service-test",
+            name: "gen-svc-test",
             port: {
               name: "h2c",
               port: 8080,
@@ -191,13 +191,13 @@ test("generateServicesTFVars maps correctly", async () => {
           },
           {
             container_name:
-              "skiff-commodore-fake-generate-service-test-sidecar",
+              "skiff-commodore-fake-gen-svc-sidecar",
             machine: {
               cpu: "1",
               cpu_idle: true,
               memory: "512Mi",
             },
-            name: "generate-service-test-sidecar",
+            name: "gen-svc-sidecar",
             secret_files: {},
             startup: {
               failure_threshold: 4,
@@ -212,23 +212,23 @@ test("generateServicesTFVars maps correctly", async () => {
         image_tag: "main",
         max_instances: 20,
         min_instances: 5,
-        name: "generate-service-test",
+        name: "gen-svc-test",
         service_account: "service.account@project.google.com",
       },
-      "no-service-account": {
+      "no-svc-account": {
         allow_delete: false,
         allow_unauthenticated: false,
         allowed_principals: [],
         containers: [
           {
-            container_name: "skiff-commodore-fake-no-service-account",
+            container_name: "skiff-commodore-fake-no-svc-account",
             liveness: {},
             machine: {
               cpu: "0.08",
               cpu_idle: true,
               memory: "512Mi",
             },
-            name: "no-service-account",
+            name: "no-svc-account",
             port: {
               name: "http1",
               port: 8080,
@@ -240,7 +240,7 @@ test("generateServicesTFVars maps correctly", async () => {
         image_tag: "main",
         max_instances: 2,
         min_instances: 1,
-        name: "no-service-account",
+        name: "no-svc-account",
       },
       filteredService: {
         allow_delete: false,
