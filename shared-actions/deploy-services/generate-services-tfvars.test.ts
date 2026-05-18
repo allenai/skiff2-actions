@@ -28,6 +28,7 @@ const fakeConfig = {
       customDomains: [],
       httpVersion: "2",
       serviceAccount: "service.account@project.google.com",
+      runtimeDependsOn: ["gen-svc-sidecar"],
       machine: {
         minInstances: 5,
         maxInstances: 20,
@@ -188,6 +189,7 @@ test("generateServicesTFVars maps correctly", async () => {
               port: 3000,
               timeout_seconds: 10,
             },
+            depends_on: ["gen-svc-sidecar"]
           },
           {
             container_name:
@@ -207,6 +209,7 @@ test("generateServicesTFVars maps correctly", async () => {
               port: 5,
               timeout_seconds: 2,
             },
+            depends_on: []
           },
         ],
         image_tag: "main",
@@ -235,6 +238,7 @@ test("generateServicesTFVars maps correctly", async () => {
             },
             secret_files: {},
             startup: {},
+            depends_on: []
           },
         ],
         image_tag: "main",
@@ -262,6 +266,7 @@ test("generateServicesTFVars maps correctly", async () => {
             secret_files: {},
             startup: {},
             liveness: {},
+            depends_on: []
           },
         ],
         image_tag: "main",
