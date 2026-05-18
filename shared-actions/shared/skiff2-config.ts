@@ -41,6 +41,9 @@ const ContainerConfigSchema = z.strictObject({
   startup: ProbeConfigSchema.optional(),
   liveness: ProbeConfigSchema.optional(),
   vpc: VpcSchema.optional(),
+  runtimeDependsOn: z.array(z.string()).optional().default([]).meta({
+    description: "The names of containers this sidecar or service depends on.",
+  }),
 });
 export type ContainerConfig = z.infer<typeof ContainerConfigSchema>;
 

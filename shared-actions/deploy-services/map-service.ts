@@ -35,6 +35,8 @@ interface Container {
 
   startup?: ProbeConfig;
   liveness?: ProbeConfig;
+  
+  depends_on: string[];
 }
 
 function baseMapToContainer(
@@ -70,6 +72,7 @@ function baseMapToContainer(
     },
     startup,
     liveness,
+    depends_on: config.runtimeDependsOn
   };
 
   if (config.vpc) {
@@ -112,7 +115,7 @@ export interface ServiceEntry {
   min_instances: number;
   max_instances: number;
   
-  service_account: string;
+  service_account?: string;
 }
 
 interface MapServiceAdditionalInput {
@@ -170,7 +173,7 @@ function mapService(
       : (serviceConfig.allowDelete ?? true),  // ephemeral: deletable unless explicitly false
     min_instances: serviceConfig.machine.minInstances,
     max_instances: serviceConfig.machine.maxInstances,
-    service_account: serviceConfig.serviceAccount
+    service_account: serviceConfig.serviceAccount,
   };
 
   return service;

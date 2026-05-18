@@ -46,6 +46,8 @@ variable "service_containers" {
       path = optional(string, "/")
       port = optional(number, 8080)
     }))
+
+    depends_on : list(string)
   }))
 }
 
