@@ -57,8 +57,27 @@ locals {
     { for key, neg in google_compute_region_network_endpoint_group.url_mask : "url-mask-${key}" => neg.id },
     { "default" = google_compute_region_network_endpoint_group.default_service.id },
     { for key, neg in google_compute_region_network_endpoint_group.branch_default : "branch-${key}" => neg.id },
-    { for key, neg in google_compute_region_network_endpoint_group.custom_domain : "custom-${replace(key, ".", "-")}" => neg.id },
+    { for key, neg in google_compute_region_network_endpoint_group.custom_domain : "custom-${local.custom_domain_keys[key]}" => neg.id },
   )
+
+  # Token used in resource names for each custom domain. Short domains keep the
+  # dotted-to-dashed form so their existing resources aren't recreated; longer
+  # domains fall back to a 9-char md5 of the full domain. Sized so the
+  # longest resource name still fits GCP's 63-char limit when
+  # project_name + service_name <= 41.
+  custom_domain_keys = {
+    for domain, service in var.custom_domain_mappings :
+    domain => (
+      max(
+        length("${local.project_name}-custom-${service.service_name}-${replace(domain, ".", "-")}-neg"),
+        length("${local.project_name}-cert-${replace(domain, ".", "-")}"),
+        length("${local.project_name}-entry-${replace(domain, ".", "-")}"),
+        length("default-lb-backend-custom-${replace(domain, ".", "-")}"),
+      ) <= 63
+      ? replace(domain, ".", "-")
+      : substr(md5(domain), 0, 9)
+    )
+  }
 }
 
 data "google_compute_global_address" "lb_ip" {
@@ -116,7 +135,7 @@ resource "google_compute_region_network_endpoint_group" "branch_default" {
 # Explicit NEGs for custom domain mappings
 resource "google_compute_region_network_endpoint_group" "custom_domain" {
   for_each              = var.custom_domain_mappings
-  name                  = "${local.project_name}-custom-${each.value.service_name}-${replace(each.key, ".", "-")}-neg"
+  name                  = "${local.project_name}-custom-${each.value.service_name}-${local.custom_domain_keys[each.key]}-neg"
   network_endpoint_type = "SERVERLESS"
   region                = var.region
   project               = var.project_id
@@ -187,15 +206,15 @@ resource "google_compute_url_map" "default" {
     for_each = var.custom_domain_mappings
     content {
       hosts        = [host_rule.key]
-      path_matcher = "custom-${replace(host_rule.key, ".", "-")}"
+      path_matcher = "custom-${local.custom_domain_keys[host_rule.key]}"
     }
   }
 
   dynamic "path_matcher" {
     for_each = var.custom_domain_mappings
     content {
-      name            = "custom-${replace(path_matcher.key, ".", "-")}"
-      default_service = "projects/${var.project_id}/global/backendServices/default-lb-backend-custom-${replace(path_matcher.key, ".", "-")}"
+      name            = "custom-${local.custom_domain_keys[path_matcher.key]}"
+      default_service = "projects/${var.project_id}/global/backendServices/default-lb-backend-custom-${local.custom_domain_keys[path_matcher.key]}"
     }
   }
 }
@@ -211,7 +230,7 @@ data "google_certificate_manager_certificate_map" "default" {
 # Individual certs for custom domains (HTTP/LB authorization — no DNS needed)
 resource "google_certificate_manager_certificate" "custom" {
   for_each = var.custom_domain_mappings
-  name     = "${local.project_name}-cert-${replace(each.key, ".", "-")}"
+  name     = "${local.project_name}-cert-${local.custom_domain_keys[each.key]}"
   project  = var.project_id
 
   managed {
@@ -240,7 +259,7 @@ resource "google_certificate_manager_certificate" "custom_domain_with_dns_auth" 
 # Cert map entries — custom domains only (wildcard entries managed by skiff2)
 resource "google_certificate_manager_certificate_map_entry" "custom" {
   for_each = var.custom_domain_mappings
-  name     = "${local.project_name}-entry-${replace(each.key, ".", "-")}"
+  name     = "${local.project_name}-entry-${local.custom_domain_keys[each.key]}"
   project  = var.project_id
   map      = data.google_certificate_manager_certificate_map.default.name
   certificates = concat(

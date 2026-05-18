@@ -16,7 +16,7 @@ const fakeConfig = {
   environments: ["main"],
   services: [
     {
-      name: "generate-infra-test",
+      name: "infra-test",
       cwd: ".",
       dockerFile: "build-test.Dockerfile",
       deploy: true,
@@ -53,7 +53,7 @@ const fakeConfig = {
       },
       sidecars: [
         {
-          name: "generate-service-test-sidecar",
+          name: "infra-sidecar",
           cwd: "./sidecar",
           dockerFile: "sidecar.Dockerfile",
           secretFiles: {},
@@ -74,7 +74,7 @@ const fakeConfig = {
       ],
     },
     {
-      name: "custom-domain-without-dns-auth-test",
+      name: "no-dns-auth-svc",
       includeDNSAuthorizationForExternalDomains: false,
       cwd: ".",
       deploy: true,
@@ -83,8 +83,8 @@ const fakeConfig = {
   ],
   remoteServices: [
     {
-      name: "remote-service-with-dns-auth",
-      customDomains: ["remote-service-with-dns-auth.pandajungle.org"],
+      name: "remote-dns-auth",
+      customDomains: ["remote-dns-auth.pandajungle.org"],
       includeDNSAuthorizationForExternalDomains: true
     },
   ],
@@ -114,18 +114,18 @@ test("generateInfraTFVars maps correctly", async () => {
     custom_domain_mappings: {
       "foo.pandajungle.org": {
         include_dns_authorization_for_external_domains: true,
-        service_name: "prod-generate-infra-test",
+        service_name: "prod-infra-test",
       },
       "no-dns-auth.pandajungle.org": {
         include_dns_authorization_for_external_domains: false,
-        service_name: "prod-custom-domain-without-dns-auth-test",
+        service_name: "prod-no-dns-auth-svc",
       },
-      "remote-service-with-dns-auth.pandajungle.org": {
+      "remote-dns-auth.pandajungle.org": {
         include_dns_authorization_for_external_domains: true,
-        service_name: "prod-remote-service-with-dns-auth",
+        service_name: "prod-remote-dns-auth",
       },
     },
-    default_service: "generate-infra-test",
+    default_service: "infra-test",
     project_id: "fake-skiff-project",
     region: "fake-region",
     use_classic_load_balancer: false,
