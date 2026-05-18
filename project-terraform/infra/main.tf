@@ -61,8 +61,10 @@ locals {
   )
 
   # Token used in resource names for each custom domain. Short domains keep the
-  # dotted-to-dashed form so their existing resources aren't recreated; domains
-  # whose names would exceed GCP's 63-char limit fall back to a stable md5 hash.
+  # dotted-to-dashed form so their existing resources aren't recreated; longer
+  # domains fall back to a 9-char md5 of the full domain. Sized so the
+  # longest resource name still fits GCP's 63-char limit when
+  # project_name + service_name <= 41.
   custom_domain_keys = {
     for domain, service in var.custom_domain_mappings :
     domain => (
@@ -72,7 +74,9 @@ locals {
         length("${local.project_name}-entry-${replace(domain, ".", "-")}"),
         length("default-lb-backend-custom-${replace(domain, ".", "-")}"),
       ) <= 63
-    ) ? replace(domain, ".", "-") : substr(md5(domain), 0, 10)
+      ? replace(domain, ".", "-")
+      : substr(md5(domain), 0, 9)
+    )
   }
 }
 
