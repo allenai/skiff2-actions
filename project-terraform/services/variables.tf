@@ -53,6 +53,8 @@ variable "services" {
         path = optional(string, "/")
         port = optional(number, 8080)
       }))
+
+      depends_on = list(string)
     }))
 
     name                  = string
