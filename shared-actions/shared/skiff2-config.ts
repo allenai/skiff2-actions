@@ -37,6 +37,14 @@ const ContainerConfigSchema = z.strictObject({
   dependsOn: z.array(z.string()).optional(),
   extraBuildArgs: z.array(z.string()).optional(),
   secretFiles: z.record(z.string(), z.string()).optional().default({}),
+  ephemeralStorage: z
+    .record(z.string(), z.string())
+    .optional()
+    .default({})
+    .meta({
+      description:
+        'Ephemeral disk volumes for this container, mapping mount path to provisioned size (e.g. { "/tmp/cache": "10Gi" }). Data persists only for the lifetime of an instance. Minimum size is 10Gi per volume, and the full provisioned size is billed for the lifetime of each instance. Note: this is a Pre-GA Cloud Run feature, so services using it are deployed with the BETA launch stage and the gen2 execution environment. https://docs.cloud.google.com/run/docs/configuring/services/ephemeral-disk',
+    }),
   machine: ContainerMachineConfigSchema.optional().prefault({}),
   startup: ProbeConfigSchema.optional(),
   liveness: ProbeConfigSchema.optional(),

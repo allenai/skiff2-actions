@@ -25,6 +25,9 @@ const fakeConfig = {
       allowedPrincipals: ["domain:allenai.org"],
       allowDelete: true,
       secretFiles: {},
+      ephemeralStorage: {
+        "/tmp/cache": "10Gi",
+      },
       customDomains: [],
       httpVersion: "2",
       serviceAccount: "service.account@project.google.com",
@@ -181,6 +184,9 @@ test("generateServicesTFVars maps correctly", async () => {
             },
 
             secret_files: {},
+            ephemeral_storage: {
+              "/tmp/cache": "10Gi",
+            },
             startup: {
               failure_threshold: 20,
               initial_delay_seconds: 60,
@@ -201,6 +207,7 @@ test("generateServicesTFVars maps correctly", async () => {
             },
             name: "gen-svc-sidecar",
             secret_files: {},
+            ephemeral_storage: {},
             startup: {
               failure_threshold: 4,
               initial_delay_seconds: 1,
@@ -237,6 +244,7 @@ test("generateServicesTFVars maps correctly", async () => {
               port: 8080,
             },
             secret_files: {},
+            ephemeral_storage: {},
             startup: {},
             depends_on: []
           },
@@ -264,6 +272,7 @@ test("generateServicesTFVars maps correctly", async () => {
               port: 8080,
             },
             secret_files: {},
+            ephemeral_storage: {},
             startup: {},
             liveness: {},
             depends_on: []

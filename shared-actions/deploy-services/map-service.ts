@@ -18,6 +18,7 @@ interface Container {
   name: string;
   container_name: string;
   secret_files: Record<string, string>;
+  ephemeral_storage: Record<string, string>;
 
   port?: PortConfig;
 
@@ -65,6 +66,7 @@ function baseMapToContainer(
     name: config.name,
     container_name: `${repoName}-${config.name}`,
     secret_files: config.secretFiles,
+    ephemeral_storage: config.ephemeralStorage,
     machine: {
       memory: config.machine.memory,
       cpu: String(config.machine.cpu),
