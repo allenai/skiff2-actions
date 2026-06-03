@@ -7,10 +7,14 @@
 # composite actions, so the generated tfvars match what CI would produce.
 #
 # Usage:
-#   ./project-terraform/tf-init.sh <org/repo> <project-name>
+#   ./project-terraform/tf-init.sh <org/repo> <project-name> [branch]
+#
+# If [branch] is provided it overrides the repo's prodBranch — useful when
+# services are deployed from a non-prod branch.
 #
 # Examples:
 #   ./project-terraform/tf-init.sh allenai/oncall-web oncall-web
+#   ./project-terraform/tf-init.sh allenai/oncall-web oncall-web my-feature-branch
 #
 set -euo pipefail
 
@@ -19,7 +23,7 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 SHARED_ACTIONS_DIR="$REPO_ROOT/shared-actions"
 
 if [ $# -lt 2 ]; then
-    echo "Usage: $0 <org/repo> <project-name>"
+    echo "Usage: $0 <org/repo> <project-name> [branch]"
     echo ""
     echo "This script will:"
     echo "  1. Fetch skiff2.json from the repo (via gh CLI)"
@@ -35,6 +39,7 @@ fi
 FULL_REPO="$1"
 REPO_NAME="${FULL_REPO#*/}"
 PROJECT_NAME="$2"
+BRANCH_OVERRIDE="${3:-}"
 
 echo "==> Repo: $FULL_REPO"
 echo "==> Repo name: $REPO_NAME"
@@ -57,7 +62,13 @@ echo "==> skiff2.json contents:"
 echo "$SKIFF2_JSON" | jq .
 
 PROD_BRANCH=$(echo "$SKIFF2_JSON" | jq -r '.prodBranch // "main"')
-echo "==> Prod branch: $PROD_BRANCH"
+if [ -n "$BRANCH_OVERRIDE" ]; then
+    echo "==> Branch override: $BRANCH_OVERRIDE (prodBranch was: $PROD_BRANCH)"
+    BRANCH="$BRANCH_OVERRIDE"
+else
+    BRANCH="$PROD_BRANCH"
+    echo "==> Branch: $BRANCH (from prodBranch)"
+fi
 
 # Write the fetched skiff2.json to a temp workspace (the Node entrypoints
 # resolve config_file relative to GITHUB_WORKSPACE).
@@ -121,9 +132,9 @@ run_services() {
         INPUT_PROJECT_ID="$PROJECT_ID" \
         INPUT_REGION="$REGION" \
         INPUT_REPO_NAME="$REPO_NAME" \
-        INPUT_ENVIRONMENT="$PROD_BRANCH" \
+        INPUT_ENVIRONMENT="$BRANCH" \
         INPUT_SERVICES="" \
-        INPUT_DEPLOY_TAG="$PROD_BRANCH" \
+        INPUT_DEPLOY_TAG="$BRANCH" \
         node ./deploy-services/index.ts
     )
 
@@ -143,7 +154,7 @@ run_services() {
     local sanitized_repo
     local sanitized_env
     sanitized_repo=$(echo "$REPO_NAME" | sed 's/[^a-zA-Z0-9._-]/-/g')
-    sanitized_env=$(echo "$PROD_BRANCH" | sed 's/[^a-zA-Z0-9._-]/-/g')
+    sanitized_env=$(echo "$BRANCH" | sed 's/[^a-zA-Z0-9._-]/-/g')
     local workspace="${sanitized_repo}--${sanitized_env}"
     echo ""
     echo "==> Selecting workspace: $workspace"
