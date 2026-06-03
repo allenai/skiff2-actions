@@ -17,6 +17,8 @@ variable "services" {
       container_name = string
       secret_files   = map(string)
 
+      ephemeral_storage = optional(map(string), {})
+
       port = optional(object({
         name = string
         port = number
