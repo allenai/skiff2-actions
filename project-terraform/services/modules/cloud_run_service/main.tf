@@ -32,7 +32,7 @@ locals {
   # The Cloud Run TF module doesn't reset the service account if it's set to null. Explicitly setting the default compute service account handles that
   service_account_email = var.service_account != null ? var.service_account : data.google_compute_default_service_account.default_service_account.email
 
-  # Ephemeral disk volumes (emptyDir medium DISK), mapping volume name to size limit.
+  # Ephemeral disk volumes, mapping volume name to size limit.
   # Ephemeral disk is a Pre-GA Cloud Run feature, so services using it must opt into
   # the BETA launch stage and the gen2 execution environment.
   ephemeral_volumes = merge([
@@ -42,6 +42,8 @@ locals {
     }
   ]...)
   uses_ephemeral_storage = length(local.ephemeral_volumes) > 0
+
+  launch_stage = local.uses_ephemeral_storage ? "BETA" : "GA"
 }
 
 resource "google_cloud_run_v2_service" "service" {
@@ -50,7 +52,7 @@ resource "google_cloud_run_v2_service" "service" {
   location = var.region
 
   ingress              = "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER"
-  launch_stage         = local.uses_ephemeral_storage ? "BETA" : "GA"
+  launch_stage         = local.launch_stage
   iap_enabled          = true
   invoker_iam_disabled = true
   deletion_protection  = !var.allow_delete
@@ -129,7 +131,7 @@ resource "google_cloud_run_v2_service" "service" {
         # Secrets must be named "<ENV_VAR>-<service-name>".
         # The prefix and hyphens are stripped/converted to produce the env var name.
         dynamic "env" {
-          # Get secrets prefixed with <CONTAINER_NAME>- and <ENV>-<CONTAINER_NAME>- and merge them 
+          # Get secrets prefixed with <CONTAINER_NAME>- and <ENV>-<CONTAINER_NAME>- and merge them
           # They are ordered so that <ENV>-<CONTAINER_NAME>- takes priority over just <CONTAINER_NAME>-
           # This allows users to override the general env variable with a more specific one, like .env files
           for_each = merge(tomap({
