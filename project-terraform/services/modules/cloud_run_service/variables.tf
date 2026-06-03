@@ -10,6 +10,10 @@ variable "service_containers" {
     container_name = string
     secret_files   = map(string)
 
+    # Ephemeral disk volumes, mapping mount path to provisioned size (e.g. { "/tmp/cache" = "10Gi" }, min 10Gi).
+    # Pre-GA: services using this are deployed with launch_stage BETA and the gen2 execution environment.
+    ephemeral_storage = optional(map(string), {})
+
     port = optional(object({
       name = string
       port = number

@@ -29,8 +29,19 @@ locals {
     )
   }
 
-  # The Cloud Run TF module doesn't reset the service account if it's set to null. Explicitly setting the default compute service account handles that 
+  # The Cloud Run TF module doesn't reset the service account if it's set to null. Explicitly setting the default compute service account handles that
   service_account_email = var.service_account != null ? var.service_account : data.google_compute_default_service_account.default_service_account.email
+
+  # Ephemeral disk volumes (emptyDir medium DISK), mapping volume name to size limit.
+  # Ephemeral disk is a Pre-GA Cloud Run feature, so services using it must opt into
+  # the BETA launch stage and the gen2 execution environment.
+  ephemeral_volumes = merge([
+    for container in var.service_containers : {
+      for mount_path, size_limit in container.ephemeral_storage :
+      replace(lower("${container.name}-ephemeral-${trim(mount_path, "/")}"), "/[^a-z0-9-]/", "-") => size_limit
+    }
+  ]...)
+  uses_ephemeral_storage = length(local.ephemeral_volumes) > 0
 }
 
 resource "google_cloud_run_v2_service" "service" {
@@ -39,13 +50,16 @@ resource "google_cloud_run_v2_service" "service" {
   location = var.region
 
   ingress              = "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER"
-  launch_stage         = "GA"
+  launch_stage         = local.uses_ephemeral_storage ? "BETA" : "GA"
   iap_enabled          = true
   invoker_iam_disabled = true
   deletion_protection  = !var.allow_delete
 
   template {
     service_account = local.service_account_email
+
+    # Ephemeral disk volumes require the gen2 execution environment
+    execution_environment = local.uses_ephemeral_storage ? "EXECUTION_ENVIRONMENT_GEN2" : null
 
     scaling {
       min_instance_count = var.min_instances
@@ -150,6 +164,16 @@ resource "google_cloud_run_v2_service" "service" {
             mount_path = dirname(volume_mounts.value)
           }
         }
+
+        # Mount ephemeral disk storage volumes
+        dynamic "volume_mounts" {
+          for_each = containers.value.ephemeral_storage
+
+          content {
+            name       = replace(lower("${containers.value.name}-ephemeral-${trim(volume_mounts.key, "/")}"), "/[^a-z0-9-]/", "-")
+            mount_path = volume_mounts.key
+          }
+        }
       }
     }
 
@@ -176,6 +200,21 @@ resource "google_cloud_run_v2_service" "service" {
             version = "latest"
             path    = basename(volumes.value.path)
           }
+        }
+      }
+    }
+
+    # Ephemeral disk storage volumes (emptyDir medium DISK).
+    # Billed for the full provisioned size for the lifetime of each instance.
+    dynamic "volumes" {
+      for_each = local.ephemeral_volumes
+
+      content {
+        name = volumes.key
+
+        empty_dir {
+          medium     = "DISK"
+          size_limit = volumes.value
         }
       }
     }
