@@ -204,8 +204,6 @@ resource "google_cloud_run_v2_service" "service" {
       }
     }
 
-    # Ephemeral disk storage volumes (emptyDir medium DISK).
-    # Billed for the full provisioned size for the lifetime of each instance.
     dynamic "volumes" {
       for_each = local.ephemeral_volumes
 
