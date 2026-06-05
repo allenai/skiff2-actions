@@ -19,6 +19,12 @@ variable "services" {
 
       ephemeral_storage = optional(map(string), {})
 
+      nfs_volumes = optional(map(object({
+        server    = string
+        path      = string
+        read_only = bool
+      })), {})
+
       port = optional(object({
         name = string
         port = number

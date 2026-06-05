@@ -28,6 +28,17 @@ const fakeConfig = {
       ephemeralStorage: {
         "/tmp/cache": "10Gi",
       },
+      nfsVolumes: {
+        "/mnt/data": {
+          server: "10.0.0.5",
+          path: "/exports/data",
+          readOnly: true,
+        },
+        "/mnt/scratch": {
+          server: "10.0.0.6",
+          path: "/exports/scratch",
+        },
+      },
       customDomains: [],
       httpVersion: "2",
       serviceAccount: "service.account@project.google.com",
@@ -187,6 +198,18 @@ test("generateServicesTFVars maps correctly", async () => {
             ephemeral_storage: {
               "/tmp/cache": "10Gi",
             },
+            nfs_volumes: {
+              "/mnt/data": {
+                server: "10.0.0.5",
+                path: "/exports/data",
+                read_only: true,
+              },
+              "/mnt/scratch": {
+                server: "10.0.0.6",
+                path: "/exports/scratch",
+                read_only: false,
+              },
+            },
             startup: {
               failure_threshold: 20,
               initial_delay_seconds: 60,
@@ -208,6 +231,7 @@ test("generateServicesTFVars maps correctly", async () => {
             name: "gen-svc-sidecar",
             secret_files: {},
             ephemeral_storage: {},
+            nfs_volumes: {},
             startup: {
               failure_threshold: 4,
               initial_delay_seconds: 1,
@@ -245,6 +269,7 @@ test("generateServicesTFVars maps correctly", async () => {
             },
             secret_files: {},
             ephemeral_storage: {},
+            nfs_volumes: {},
             startup: {},
             depends_on: []
           },
@@ -273,6 +298,7 @@ test("generateServicesTFVars maps correctly", async () => {
             },
             secret_files: {},
             ephemeral_storage: {},
+            nfs_volumes: {},
             startup: {},
             liveness: {},
             depends_on: []
