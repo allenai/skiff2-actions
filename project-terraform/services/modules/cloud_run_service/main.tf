@@ -54,6 +54,9 @@ locals {
   uses_nfs_volumes = length(local.nfs_volumes) > 0
 
   launch_stage = local.uses_ephemeral_storage ? "BETA" : "GA"
+
+  # Ephemeral disk and NFS volumes require the gen2 execution environment
+  execution_environment = (local.uses_ephemeral_storage || local.uses_nfs_volumes) ? "EXECUTION_ENVIRONMENT_GEN2" : null
 }
 
 resource "google_cloud_run_v2_service" "service" {
@@ -70,8 +73,7 @@ resource "google_cloud_run_v2_service" "service" {
   template {
     service_account = local.service_account_email
 
-    # Ephemeral disk and NFS volumes require the gen2 execution environment
-    execution_environment = (local.uses_ephemeral_storage || local.uses_nfs_volumes) ? "EXECUTION_ENVIRONMENT_GEN2" : null
+    execution_environment = local.execution_environment
 
     scaling {
       min_instance_count = var.min_instances
