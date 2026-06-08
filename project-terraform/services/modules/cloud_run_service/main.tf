@@ -43,7 +43,20 @@ locals {
   ]...)
   uses_ephemeral_storage = length(local.ephemeral_volumes) > 0
 
+  # NFS volumes, mapping volume name to the NFS share config.
+  # NFS volume mounts require the gen2 execution environment.
+  nfs_volumes = merge([
+    for container in var.service_containers : {
+      for mount_path, nfs in container.nfs_volumes :
+      replace(lower("${container.name}-nfs-${trim(mount_path, "/")}"), "/[^a-z0-9-]/", "-") => nfs
+    }
+  ]...)
+  uses_nfs_volumes = length(local.nfs_volumes) > 0
+
   launch_stage = local.uses_ephemeral_storage ? "BETA" : "GA"
+
+  # Ephemeral disk and NFS volumes require the gen2 execution environment
+  execution_environment = (local.uses_ephemeral_storage || local.uses_nfs_volumes) ? "EXECUTION_ENVIRONMENT_GEN2" : null
 }
 
 resource "google_cloud_run_v2_service" "service" {
@@ -60,8 +73,7 @@ resource "google_cloud_run_v2_service" "service" {
   template {
     service_account = local.service_account_email
 
-    # Ephemeral disk volumes require the gen2 execution environment
-    execution_environment = local.uses_ephemeral_storage ? "EXECUTION_ENVIRONMENT_GEN2" : null
+    execution_environment = local.execution_environment
 
     scaling {
       min_instance_count = var.min_instances
@@ -178,6 +190,16 @@ resource "google_cloud_run_v2_service" "service" {
             mount_path = volume_mounts.key
           }
         }
+
+        # Mount NFS volumes
+        dynamic "volume_mounts" {
+          for_each = containers.value.nfs_volumes
+
+          content {
+            name       = replace(lower("${containers.value.name}-nfs-${trim(volume_mounts.key, "/")}"), "/[^a-z0-9-]/", "-")
+            mount_path = volume_mounts.key
+          }
+        }
       }
     }
 
@@ -221,6 +243,21 @@ resource "google_cloud_run_v2_service" "service" {
       }
     }
 
+    # NFS volumes
+    dynamic "volumes" {
+      for_each = local.nfs_volumes
+
+      content {
+        name = volumes.key
+
+        nfs {
+          server    = volumes.value.server
+          path      = volumes.value.path
+          read_only = volumes.value.read_only
+        }
+      }
+    }
+
     dynamic "vpc_access" {
       for_each = [for key, value in var.service_containers : value.vpc if value.vpc != null]
       content {
@@ -233,8 +270,8 @@ resource "google_cloud_run_v2_service" "service" {
     }
 
 
-    timeout                          = "300s"
-    max_instance_request_concurrency = 80
+    timeout                          = "${var.request_timeout_seconds}s"
+    max_instance_request_concurrency = var.max_concurrent_requests
   }
 
   traffic {

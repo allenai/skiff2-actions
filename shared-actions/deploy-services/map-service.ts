@@ -19,6 +19,10 @@ interface Container {
   container_name: string;
   secret_files: Record<string, string>;
   ephemeral_storage: Record<string, string>;
+  nfs_volumes: Record<
+    string,
+    { server: string; path: string; read_only: boolean }
+  >;
 
   port?: PortConfig;
 
@@ -67,6 +71,12 @@ function baseMapToContainer(
     container_name: `${repoName}-${config.name}`,
     secret_files: config.secretFiles,
     ephemeral_storage: config.ephemeralStorage,
+    nfs_volumes: Object.fromEntries(
+      Object.entries(config.nfsVolumes).map(([mountPath, nfs]) => [
+        mountPath,
+        { server: nfs.server, path: nfs.path, read_only: nfs.readOnly },
+      ]),
+    ),
     machine: {
       memory: config.machine.memory,
       cpu: String(config.machine.cpu),
@@ -116,7 +126,9 @@ export interface ServiceEntry {
   allow_delete: boolean;
   min_instances: number;
   max_instances: number;
-  
+  request_timeout_seconds: number;
+  max_concurrent_requests: number;
+
   service_account?: string;
 }
 
@@ -175,6 +187,8 @@ function mapService(
       : (serviceConfig.allowDelete ?? true),  // ephemeral: deletable unless explicitly false
     min_instances: serviceConfig.machine.minInstances,
     max_instances: serviceConfig.machine.maxInstances,
+    request_timeout_seconds: serviceConfig.requestTimeoutSeconds,
+    max_concurrent_requests: serviceConfig.maxConcurrentRequests,
     service_account: serviceConfig.serviceAccount,
   };
 

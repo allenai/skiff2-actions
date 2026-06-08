@@ -19,6 +19,12 @@ variable "services" {
 
       ephemeral_storage = optional(map(string), {})
 
+      nfs_volumes = optional(map(object({
+        server    = string
+        path      = string
+        read_only = bool
+      })), {})
+
       port = optional(object({
         name = string
         port = number
@@ -59,13 +65,15 @@ variable "services" {
       depends_on = list(string)
     }))
 
-    name                  = string
-    min_instances         = number
-    max_instances         = number
-    allow_delete          = bool
-    allow_unauthenticated = bool
-    allowed_principals    = list(string)
-    service_account       = optional(string)
+    name                    = string
+    min_instances           = number
+    max_instances           = number
+    request_timeout_seconds = number
+    max_concurrent_requests = number
+    allow_delete            = bool
+    allow_unauthenticated   = bool
+    allowed_principals      = list(string)
+    service_account         = optional(string)
   }))
 }
 

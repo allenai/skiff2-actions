@@ -45,6 +45,21 @@ const ContainerConfigSchema = z.strictObject({
       description:
         'Ephemeral disk volumes for this container, mapping mount path to provisioned size (e.g. { "/tmp/cache": "10Gi" }). Data persists only for the lifetime of an instance. Minimum size is 10Gi per volume, and the full provisioned size is billed for the lifetime of each instance. Note: this is a Pre-GA Cloud Run feature, so services using it are deployed with the BETA launch stage and the gen2 execution environment. https://docs.cloud.google.com/run/docs/configuring/services/ephemeral-disk',
     }),
+  nfsVolumes: z
+    .record(
+      z.string(),
+      z.strictObject({
+        server: z.string().min(1, "NFS server is required"),
+        path: z.string().min(1, "NFS export path is required"),
+        readOnly: z.boolean().optional().default(false),
+      }),
+    )
+    .optional()
+    .default({})
+    .meta({
+      description:
+        'NFS volumes for this container, mapping mount path to an NFS share (e.g. { "/mnt/data": { "server": "10.0.0.5", "path": "/exports/data" } }). The NFS server (e.g. a Filestore instance) must be reachable from the service, which usually means configuring vpc as well. Services using NFS volumes are deployed with the gen2 execution environment. https://docs.cloud.google.com/run/docs/configuring/services/nfs-volume-mounts',
+    }),
   machine: ContainerMachineConfigSchema.optional().prefault({}),
   startup: ProbeConfigSchema.optional(),
   liveness: ProbeConfigSchema.optional(),
@@ -85,6 +100,26 @@ export const ServiceConfigSchema = z.strictObject({
   allowDelete: z.boolean().optional(),
   customDomains: z.array(z.string()).optional().default([]),
   machine: MachineConfigSchema.optional().prefault({}),
+  requestTimeoutSeconds: z
+    .int()
+    .min(1)
+    .max(3600)
+    .optional()
+    .default(300)
+    .meta({
+      description:
+        "The maximum time (in seconds) a request to this service is allowed to take before it is terminated. Defaults to 300 (5 minutes). The maximum allowed value is 3600 (60 minutes). https://docs.cloud.google.com/run/docs/configuring/request-timeout",
+    }),
+  maxConcurrentRequests: z
+    .int()
+    .min(1)
+    .max(1000)
+    .optional()
+    .default(80)
+    .meta({
+      description:
+        "The maximum number of concurrent requests each instance of this service can receive before a new instance is started. Defaults to 80. The maximum allowed value is 1000. https://docs.cloud.google.com/run/docs/configuring/concurrency",
+    }),
   httpVersion: z
     .union([z.literal("1"), z.literal("2")])
     .default("1")
