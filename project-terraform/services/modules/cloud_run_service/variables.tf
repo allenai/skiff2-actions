@@ -106,6 +106,18 @@ variable "max_instances" {
   type = number
 }
 
+variable "request_timeout_seconds" {
+  description = "The maximum time (in seconds) a request to this service is allowed to take before it is terminated."
+  type        = number
+  default     = 300
+}
+
+variable "max_concurrent_requests" {
+  description = "The maximum number of concurrent requests each instance of this service can receive before a new instance is started."
+  type        = number
+  default     = 80
+}
+
 variable "service_account" {
   type        = string
   default     = null

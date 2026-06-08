@@ -126,7 +126,9 @@ export interface ServiceEntry {
   allow_delete: boolean;
   min_instances: number;
   max_instances: number;
-  
+  request_timeout_seconds: number;
+  max_concurrent_requests: number;
+
   service_account?: string;
 }
 
@@ -185,6 +187,8 @@ function mapService(
       : (serviceConfig.allowDelete ?? true),  // ephemeral: deletable unless explicitly false
     min_instances: serviceConfig.machine.minInstances,
     max_instances: serviceConfig.machine.maxInstances,
+    request_timeout_seconds: serviceConfig.requestTimeoutSeconds,
+    max_concurrent_requests: serviceConfig.maxConcurrentRequests,
     service_account: serviceConfig.serviceAccount,
   };
 

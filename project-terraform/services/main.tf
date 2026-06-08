@@ -40,18 +40,20 @@ module "cloud_run_service" {
     google-beta = google-beta
   }
 
-  service_name           = each.value.name
-  service_containers     = each.value.containers
-  project_id             = var.project_id
-  project_number         = data.google_project.project.number
-  region                 = var.region
-  deployment_environment = var.deployment_environment
-  image_tag              = var.image_tag
-  min_instances          = each.value.min_instances
-  max_instances          = each.value.max_instances
-  allow_delete           = each.value.allow_delete
-  allow_unauthenticated  = each.value.allow_unauthenticated
-  allowed_principals     = each.value.allowed_principals
-  service_account        = each.value.service_account
+  service_name            = each.value.name
+  service_containers      = each.value.containers
+  project_id              = var.project_id
+  project_number          = data.google_project.project.number
+  region                  = var.region
+  deployment_environment  = var.deployment_environment
+  image_tag               = var.image_tag
+  min_instances           = each.value.min_instances
+  max_instances           = each.value.max_instances
+  request_timeout_seconds = each.value.request_timeout_seconds
+  max_concurrent_requests = each.value.max_concurrent_requests
+  allow_delete            = each.value.allow_delete
+  allow_unauthenticated   = each.value.allow_unauthenticated
+  allowed_principals      = each.value.allowed_principals
+  service_account         = each.value.service_account
 }
 

@@ -270,8 +270,8 @@ resource "google_cloud_run_v2_service" "service" {
     }
 
 
-    timeout                          = "300s"
-    max_instance_request_concurrency = 80
+    timeout                          = "${var.request_timeout_seconds}s"
+    max_instance_request_concurrency = var.max_concurrent_requests
   }
 
   traffic {

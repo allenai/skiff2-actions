@@ -100,6 +100,26 @@ export const ServiceConfigSchema = z.strictObject({
   allowDelete: z.boolean().optional(),
   customDomains: z.array(z.string()).optional().default([]),
   machine: MachineConfigSchema.optional().prefault({}),
+  requestTimeoutSeconds: z
+    .int()
+    .min(1)
+    .max(3600)
+    .optional()
+    .default(300)
+    .meta({
+      description:
+        "The maximum time (in seconds) a request to this service is allowed to take before it is terminated. Defaults to 300 (5 minutes). The maximum allowed value is 3600 (60 minutes). https://docs.cloud.google.com/run/docs/configuring/request-timeout",
+    }),
+  maxConcurrentRequests: z
+    .int()
+    .min(1)
+    .max(1000)
+    .optional()
+    .default(80)
+    .meta({
+      description:
+        "The maximum number of concurrent requests each instance of this service can receive before a new instance is started. Defaults to 80. The maximum allowed value is 1000. https://docs.cloud.google.com/run/docs/configuring/concurrency",
+    }),
   httpVersion: z
     .union([z.literal("1"), z.literal("2")])
     .default("1")
