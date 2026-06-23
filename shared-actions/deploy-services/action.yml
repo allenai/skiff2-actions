@@ -19,7 +19,7 @@ inputs:
     required: false
     default: ${{ github.event.repository.name }}
   command:
-    description: "Terraform command to run: 'plan' or 'apply'"
+    description: "Terraform command to run: 'plan', 'apply', or 'destroy'"
     required: false
     default: "plan"
   environment:
@@ -98,6 +98,8 @@ runs:
 
         if [ "${{ inputs.command }}" = "apply" ]; then
           terraform apply -input=false -auto-approve $target
+        elif [" ${{ inputs.command}}" = "destroy" ]; then
+          terraform destroy -input=false $target
         else
           terraform plan -input=false $target
         fi
