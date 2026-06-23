@@ -99,7 +99,7 @@ runs:
         if [ "${{ inputs.command }}" = "apply" ]; then
           terraform apply -input=false -auto-approve $target
         elif [ "${{ inputs.command}}" = "destroy" ]; then
-          terraform destroy -input=false $target
+          terraform apply -destroy -input=false -auto-approve $target
         else
           terraform plan -input=false $target
         fi
