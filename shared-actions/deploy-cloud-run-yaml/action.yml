@@ -1,0 +1,40 @@
+name: Skiff2 Deploy Services
+description: Transforms skiff2.json config into Terraform variables and runs terraform plan or apply for Cloud Run services
+author: Skiff
+
+inputs:
+  service_name:
+    description: "Name of the service to deploy"
+    required: true
+  region:
+    description: "GCP region"
+    required: false
+    default: "us-west1"
+  substitutions:
+    description: newline-delimited pairs of substitutions to make in the service template. e.g. API_IMAGE=my_api_image
+    required: false
+
+runs:
+  using: composite
+  steps:
+    # Create Cloud Run YAML Service specification from template
+    # envsubst is replacing template variables and creating a YAML Service specification with the new image tag
+    - name: Create service declaration
+      shell: bash
+      run: |-
+        envsubst < ./.skiff/api-service.template.yaml > service.yaml
+      env:
+        SERVICE: ${{ inputs.service_name }}
+
+    # Deploy Cloud Run Service from the YAML Service specification
+    - name: Deploy to Cloud Run
+      id: deploy
+      uses: google-github-actions/deploy-cloudrun@v3
+      with:
+        service: ${{ inputs.service_name }}
+        region: ${{ inputs.region }}
+        metadata: service.yaml
+
+branding:
+  icon: settings
+  color: purple
