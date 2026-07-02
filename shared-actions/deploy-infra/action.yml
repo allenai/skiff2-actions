@@ -54,7 +54,7 @@ runs:
       run: node ./deploy-infra/index.ts
 
     - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v3
+      uses: hashicorp/setup-terraform@v4
 
     - name: Terraform Init
       shell: bash
