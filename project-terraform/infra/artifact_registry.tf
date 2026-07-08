@@ -10,7 +10,8 @@ resource "google_artifact_registry_repository" "gcr-io" {
     action = "KEEP"
 
     most_recent_versions {
-      keep_count = 5
+      # Layers seem to be included in this count so we bump it up higher than what would seem reasonable otherwise
+      keep_count = 30
     }
   }
 
