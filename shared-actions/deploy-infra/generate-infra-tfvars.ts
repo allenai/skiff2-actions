@@ -55,16 +55,10 @@ export async function generateInfraTFVars() {
   const allEnvironments = config.environments ?? [config.prodBranch];
 
   // Find the default (root) service
-  let defaultServiceName: string | undefined;
-  for (const service of config.services) {
-    if (service.deploy === false) continue;
-    if (service.isRootService || !defaultServiceName) {
-      defaultServiceName = service.name;
-    }
-  }
-
+  const defaultServiceName = config.services.find(service => service.isRootService)?.name
+  
   if (!defaultServiceName) {
-    throw new Error("No default service could be determined");
+    throw new Error("No root service could be determined. Ensure there is exactly one service with isRootService set to true.");
   }
 
   // Build custom domain mappings from service configs (prod only)
