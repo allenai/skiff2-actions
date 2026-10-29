@@ -39,6 +39,16 @@ const fakeConfig = {
           path: "/exports/scratch",
         },
       },
+      gcsVolumes: {
+        "/mnt/bucket": {
+          bucket: "bucket-a",
+          readOnly: true,
+          mountOptions: ["implicit-dirs=false"],
+        },
+        "/mnt/another": {
+          bucket: "other-bucket",
+        },
+      },
       customDomains: [],
       httpVersion: "2",
       requestTimeoutSeconds: 60,
@@ -212,6 +222,18 @@ test("generateServicesTFVars maps correctly", async () => {
                 read_only: false,
               },
             },
+            gcs_volumes: {
+              "/mnt/bucket": {
+                bucket: "bucket-a",
+                read_only: true,
+                mount_options: ["implicit-dirs=false"],
+              },
+              "/mnt/another": {
+                bucket: "other-bucket",
+                read_only: false,
+                mount_options: [],
+              },
+            },
             startup: {
               failure_threshold: 20,
               initial_delay_seconds: 60,
@@ -234,6 +256,7 @@ test("generateServicesTFVars maps correctly", async () => {
             secret_files: {},
             ephemeral_storage: {},
             nfs_volumes: {},
+            gcs_volumes: {},
             startup: {
               failure_threshold: 4,
               initial_delay_seconds: 1,
@@ -274,6 +297,7 @@ test("generateServicesTFVars maps correctly", async () => {
             secret_files: {},
             ephemeral_storage: {},
             nfs_volumes: {},
+            gcs_volumes: {},
             startup: {},
             depends_on: []
           },
@@ -305,6 +329,7 @@ test("generateServicesTFVars maps correctly", async () => {
             secret_files: {},
             ephemeral_storage: {},
             nfs_volumes: {},
+            gcs_volumes: {},
             startup: {},
             liveness: {},
             depends_on: []

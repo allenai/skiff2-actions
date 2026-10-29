@@ -25,6 +25,12 @@ variable "services" {
         read_only = bool
       })), {})
 
+      gcs_volumes = optional(map(object({
+        bucket        = string
+        read_only     = bool
+        mount_options = optional(list(string), [])
+      })), {})
+
       port = optional(object({
         name = string
         port = number
