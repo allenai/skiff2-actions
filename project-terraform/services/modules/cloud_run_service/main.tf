@@ -53,10 +53,20 @@ locals {
   ]...)
   uses_nfs_volumes = length(local.nfs_volumes) > 0
 
+  # Cloud Storage (GCS FUSE) volumes, mapping volume name to the bucket config.
+  # GCS volume mounts require the gen2 execution environment.
+  gcs_volumes = merge([
+    for container in var.service_containers : {
+      for mount_path, gcs in container.gcs_volumes :
+      replace(lower("${container.name}-gcs-${trim(mount_path, "/")}"), "/[^a-z0-9-]/", "-") => gcs
+    }
+  ]...)
+  uses_gcs_volumes = length(local.gcs_volumes) > 0
+
   launch_stage = local.uses_ephemeral_storage ? "BETA" : "GA"
 
-  # Ephemeral disk and NFS volumes require the gen2 execution environment
-  execution_environment = (local.uses_ephemeral_storage || local.uses_nfs_volumes) ? "EXECUTION_ENVIRONMENT_GEN2" : null
+  # Ephemeral disk, NFS, and GCS volumes require the gen2 execution environment
+  execution_environment = (local.uses_ephemeral_storage || local.uses_nfs_volumes || local.uses_gcs_volumes) ? "EXECUTION_ENVIRONMENT_GEN2" : null
 }
 
 resource "google_cloud_run_v2_service" "service" {
@@ -200,6 +210,16 @@ resource "google_cloud_run_v2_service" "service" {
             mount_path = volume_mounts.key
           }
         }
+
+        # Mount GCS volumes
+        dynamic "volume_mounts" {
+          for_each = containers.value.gcs_volumes
+
+          content {
+            name       = replace(lower("${containers.value.name}-gcs-${trim(volume_mounts.key, "/")}"), "/[^a-z0-9-]/", "-")
+            mount_path = volume_mounts.key
+          }
+        }
       }
     }
 
@@ -254,6 +274,21 @@ resource "google_cloud_run_v2_service" "service" {
           server    = volumes.value.server
           path      = volumes.value.path
           read_only = volumes.value.read_only
+        }
+      }
+    }
+
+    # GCS volumes
+    dynamic "volumes" {
+      for_each = local.gcs_volumes
+
+      content {
+        name = volumes.key
+
+        gcs {
+          bucket        = volumes.value.bucket
+          read_only     = volumes.value.read_only
+          mount_options = volumes.value.mount_options
         }
       }
     }

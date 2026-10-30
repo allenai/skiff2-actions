@@ -60,6 +60,21 @@ const ContainerConfigSchema = z.strictObject({
       description:
         'NFS volumes for this container, mapping mount path to an NFS share (e.g. { "/mnt/data": { "server": "10.0.0.5", "path": "/exports/data" } }). The NFS server (e.g. a Filestore instance) must be reachable from the service, which usually means configuring vpc as well. Services using NFS volumes are deployed with the gen2 execution environment. https://docs.cloud.google.com/run/docs/configuring/services/nfs-volume-mounts',
     }),
+  gcsVolumes: z
+    .record(
+      z.string(),
+      z.strictObject({
+        bucket: z.string().min(1, "GCS bucket is required"),
+        readOnly: z.boolean().optional().default(false),
+        mountOptions: z.array(z.string()).optional().default([]),
+      }),
+    )
+    .optional()
+    .default({})
+    .meta({
+      description:
+        'Cloud Storage volumes for this container, mapping mount path to a bucket (e.g. { "/mnt/data": { "bucket": "my-bucket" } }). The service account must have roles/storage.objectUser (or roles/storage.objectViewer if readOnly) on the bucket. Services using GCS volumes are deployed with the gen2 execution environment. https://docs.cloud.google.com/run/docs/configuring/services/cloud-storage-volume-mounts',
+    }),
   machine: ContainerMachineConfigSchema.optional().prefault({}),
   startup: ProbeConfigSchema.optional(),
   liveness: ProbeConfigSchema.optional(),

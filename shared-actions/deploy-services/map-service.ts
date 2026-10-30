@@ -23,6 +23,10 @@ interface Container {
     string,
     { server: string; path: string; read_only: boolean }
   >;
+  gcs_volumes: Record<
+    string,
+    { bucket: string; read_only: boolean; mount_options: string[] }
+  >;
 
   port?: PortConfig;
 
@@ -75,6 +79,16 @@ function baseMapToContainer(
       Object.entries(config.nfsVolumes).map(([mountPath, nfs]) => [
         mountPath,
         { server: nfs.server, path: nfs.path, read_only: nfs.readOnly },
+      ]),
+    ),
+    gcs_volumes: Object.fromEntries(
+      Object.entries(config.gcsVolumes).map(([mountPath, gcs]) => [
+        mountPath,
+        {
+          bucket: gcs.bucket,
+          read_only: gcs.readOnly,
+          mount_options: gcs.mountOptions,
+        },
       ]),
     ),
     machine: {
